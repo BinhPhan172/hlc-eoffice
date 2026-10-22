@@ -48,73 +48,171 @@ function ServiceRequestCreatePage() {
   const [error, setError] =
     useState("")
 
-  const handleCreate = () => {
+  const [saving, setSaving] =
+    useState(false)
+
+  const readFileAsDataUrl = (
+    selectedFile
+  ) => {
+    return new Promise(
+      (resolve, reject) => {
+        const reader =
+          new FileReader()
+
+        reader.onload = () => {
+          resolve(reader.result)
+        }
+
+        reader.onerror = () => {
+          reject(
+            new Error(
+              "Không thể đọc file."
+            )
+          )
+        }
+
+        reader.readAsDataURL(
+          selectedFile
+        )
+      }
+    )
+  }
+
+  const generateRequestId = (
+    savedRequests
+  ) => {
+    const numbers =
+      savedRequests
+        .map((item) => {
+          const match =
+            item.id?.match(
+              /^SR-(\d+)$/
+            )
+
+          return match
+            ? Number(match[1])
+            : 0
+        })
+        .filter(
+          (number) =>
+            Number.isFinite(number)
+        )
+
+    const highest =
+      Math.max(
+        3,
+        ...numbers
+      )
+
+    return `SR-${String(
+      highest + 1
+    ).padStart(4, "0")}`
+  }
+
+  const handleCreate = async () => {
     if (
       !title.trim() ||
       !category ||
       !description.trim()
     ) {
       setError(
-        "Vui lòng nhập đầy đủ nội dung yêu cầu, danh mục và mô tả."
+        "Vui lòng nhập nội dung yêu cầu, chọn danh mục và nhập mô tả."
       )
-
       return
     }
 
-    const savedRequests =
-      JSON.parse(
-        localStorage.getItem(
-          "hlcServiceRequests"
-        )
-      ) || []
-
-    const newId = `SR-${String(
-      savedRequests.length + 4
-    ).padStart(4, "0")}`
-
-    const newRequest = {
-      id: newId,
-
-      title,
-
-      category,
-
-      description,
-
-      requester:
-        "Nguyễn Văn A",
-
-      updatedAt:
-        new Date().toLocaleDateString(
-          "vi-VN"
-        ),
-
-      status:
-        "Chờ tiếp nhận",
-
-      fileName:
-        file?.name || "",
-
-      fileSize: file
-        ? `${(
-            file.size /
-            1024 /
-            1024
-          ).toFixed(2)} MB`
-        : "",
+    if (
+      file &&
+      file.size >
+        2 * 1024 * 1024
+    ) {
+      setError(
+        "Prototype hiện chỉ lưu file tối đa 2 MB."
+      )
+      return
     }
 
-    localStorage.setItem(
-      "hlcServiceRequests",
-      JSON.stringify([
-        ...savedRequests,
-        newRequest,
-      ])
-    )
+    setError("")
+    setSaving(true)
 
-    navigate(
-      "/service-requests"
-    )
+    try {
+      let fileData = ""
+      let fileName = ""
+      let fileSize = ""
+
+      if (file) {
+        fileData =
+          await readFileAsDataUrl(
+            file
+          )
+
+        fileName =
+          file.name
+
+        fileSize = `${(
+          file.size /
+          1024 /
+          1024
+        ).toFixed(2)} MB`
+      }
+
+      const savedRequests =
+        JSON.parse(
+          localStorage.getItem(
+            "hlcServiceRequests"
+          )
+        ) || []
+
+      const newId =
+        generateRequestId(
+          savedRequests
+        )
+
+      const newRequest = {
+        id: newId,
+
+        title:
+          title.trim(),
+
+        category,
+
+        requester:
+          "Nguyễn Văn A",
+
+        description:
+          description.trim(),
+
+        updatedAt:
+          new Date().toLocaleDateString(
+            "vi-VN"
+          ),
+
+        status:
+          "Chờ tiếp nhận",
+
+        fileName,
+        fileSize,
+        fileData,
+      }
+
+      localStorage.setItem(
+        "hlcServiceRequests",
+        JSON.stringify([
+          ...savedRequests,
+          newRequest,
+        ])
+      )
+
+      navigate(
+        `/service-requests/${newId}`
+      )
+    } catch (err) {
+      setError(
+        "Không thể lưu file. Vui lòng thử lại với file nhỏ hơn."
+      )
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -135,7 +233,8 @@ function ServiceRequestCreatePage() {
         </h1>
 
         <p>
-          Tạo yêu cầu hỗ trợ nội bộ mới.
+          Tạo yêu cầu mới trên
+          HLC E-Office.
         </p>
       </div>
 
@@ -196,20 +295,21 @@ function ServiceRequestCreatePage() {
             {categories.length ===
               0 && (
               <small>
-                Chưa có danh mục yêu cầu
-                được cấu hình.
+                Chưa có danh mục yêu cầu.
+                Vui lòng cấu hình trong
+                Thiết lập hệ thống.
               </small>
             )}
           </div>
 
           <div className="form-group">
             <label>
-              Mô tả chi tiết *
+              Mô tả yêu cầu *
             </label>
 
             <textarea
               rows="5"
-              placeholder="Mô tả chi tiết vấn đề hoặc nhu cầu..."
+              placeholder="Nhập mô tả chi tiết..."
               value={description}
               onChange={(e) =>
                 setDescription(
@@ -228,7 +328,8 @@ function ServiceRequestCreatePage() {
               type="file"
               onChange={(e) =>
                 setFile(
-                  e.target.files[0]
+                  e.target.files[0] ||
+                  null
                 )
               }
             />
@@ -236,9 +337,20 @@ function ServiceRequestCreatePage() {
             {file && (
               <small>
                 Đã chọn:{" "}
-                {file.name}
+                {file.name} -{" "}
+                {(
+                  file.size /
+                  1024 /
+                  1024
+                ).toFixed(2)}{" "}
+                MB
               </small>
             )}
+
+            <small>
+              Không bắt buộc. Prototype hiện hỗ trợ
+              lưu file tối đa 2 MB.
+            </small>
           </div>
 
           <div className="form-actions">
@@ -258,8 +370,14 @@ function ServiceRequestCreatePage() {
               onClick={
                 handleCreate
               }
+              disabled={
+                saving ||
+                categories.length === 0
+              }
             >
-              Tạo yêu cầu
+              {saving
+                ? "Đang tạo..."
+                : "Tạo yêu cầu"}
             </button>
           </div>
         </div>

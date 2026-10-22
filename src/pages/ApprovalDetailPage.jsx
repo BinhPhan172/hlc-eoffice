@@ -8,7 +8,8 @@ function ApprovalDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const currentUser = "Nguyễn Văn A"
+  const currentUser =
+    "Nguyễn Văn A"
 
   const defaultApprovals = [
     {
@@ -17,13 +18,19 @@ function ApprovalDetailPage() {
         "Đề nghị mua sắm thiết bị",
       description:
         "Đề nghị phê duyệt kế hoạch mua sắm thiết bị phục vụ công việc.",
-      creator: "Nguyễn Văn A",
-      approver: "Trần Thị B",
-      updatedAt: "22/10/2026",
-      status: "Chờ phê duyệt",
+      creator:
+        "Nguyễn Văn A",
+      approver:
+        "Trần Thị B",
+      updatedAt:
+        "22/10/2026",
+      status:
+        "Chờ phê duyệt",
       fileName:
         "de-nghi-mua-sam-thiet-bi.pdf",
-      fileSize: "2.1 MB",
+      fileSize:
+        "2.1 MB",
+      fileData: "",
     },
 
     {
@@ -32,13 +39,19 @@ function ApprovalDetailPage() {
         "Quyết định điều động nhân sự",
       description:
         "Hồ sơ quyết định điều động nhân sự.",
-      creator: "Trần Thị B",
-      approver: "Lê Văn C",
-      updatedAt: "21/10/2026",
-      status: "Chờ ký",
+      creator:
+        "Trần Thị B",
+      approver:
+        "Lê Văn C",
+      updatedAt:
+        "21/10/2026",
+      status:
+        "Chờ ký",
       fileName:
         "quyet-dinh-dieu-dong.pdf",
-      fileSize: "1.5 MB",
+      fileSize:
+        "1.5 MB",
+      fileData: "",
     },
 
     {
@@ -47,13 +60,19 @@ function ApprovalDetailPage() {
         "Đề xuất kế hoạch đào tạo",
       description:
         "Đề xuất kế hoạch đào tạo nội bộ.",
-      creator: "Lê Văn C",
-      approver: "Phạm Văn D",
-      updatedAt: "20/10/2026",
-      status: "Hoàn tất",
+      creator:
+        "Lê Văn C",
+      approver:
+        "Phạm Văn D",
+      updatedAt:
+        "20/10/2026",
+      status:
+        "Hoàn tất",
       fileName:
         "ke-hoach-dao-tao.pdf",
-      fileSize: "3.0 MB",
+      fileSize:
+        "3.0 MB",
+      fileData: "",
     },
   ]
 
@@ -106,7 +125,8 @@ function ApprovalDetailPage() {
 
   const approval =
     allApprovals.find(
-      (item) => item.id === id
+      (item) =>
+        item.id === id
     )
 
   const [status, setStatus] =
@@ -166,7 +186,9 @@ function ApprovalDetailPage() {
 
         <button
           onClick={() =>
-            navigate("/approval")
+            navigate(
+              "/approval"
+            )
           }
         >
           ← Quay lại danh sách
@@ -185,7 +207,8 @@ function ApprovalDetailPage() {
         )
       ) || {}
 
-    current[id] = newStatus
+    current[id] =
+      newStatus
 
     localStorage.setItem(
       "hlcApprovalStatus",
@@ -217,14 +240,16 @@ function ApprovalDetailPage() {
   }
 
   const handleApprove = () => {
-    saveStatus("Chờ ký")
+    saveStatus(
+      "Chờ ký"
+    )
 
     const newComment = {
       author: currentUser,
       content:
         "Đã phê duyệt hồ sơ.",
       date:
-        new Date().toLocaleDateString(
+        new Date().toLocaleString(
           "vi-VN"
         ),
     }
@@ -242,7 +267,9 @@ function ApprovalDetailPage() {
       return
     }
 
-    saveStatus("Từ chối")
+    saveStatus(
+      "Từ chối"
+    )
 
     const currentReasons =
       JSON.parse(
@@ -252,7 +279,7 @@ function ApprovalDetailPage() {
       ) || {}
 
     currentReasons[id] =
-      rejectReason
+      rejectReason.trim()
 
     localStorage.setItem(
       "hlcApprovalRejectReasons",
@@ -262,11 +289,14 @@ function ApprovalDetailPage() {
     )
 
     const newComment = {
-      author: currentUser,
+      author:
+        currentUser,
+
       content:
-        `Từ chối: ${rejectReason}`,
+        `Từ chối: ${rejectReason.trim()}`,
+
       date:
-        new Date().toLocaleDateString(
+        new Date().toLocaleString(
           "vi-VN"
         ),
     }
@@ -288,11 +318,14 @@ function ApprovalDetailPage() {
     }
 
     const newComment = {
-      author: currentUser,
+      author:
+        currentUser,
+
       content:
-        commentText,
+        commentText.trim(),
+
       date:
-        new Date().toLocaleDateString(
+        new Date().toLocaleString(
           "vi-VN"
         ),
     }
@@ -331,11 +364,14 @@ function ApprovalDetailPage() {
     )
 
     const newComment = {
-      author: currentUser,
+      author:
+        currentUser,
+
       content:
         `Đã ủy quyền ký cho ${selectedDelegate}.`,
+
       date:
-        new Date().toLocaleDateString(
+        new Date().toLocaleString(
           "vi-VN"
         ),
     }
@@ -364,22 +400,57 @@ function ApprovalDetailPage() {
     )
   }
 
+  const handleDownload = () => {
+    if (!approval.fileData) {
+      window.alert(
+        "File mẫu hoặc hồ sơ cũ chưa có dữ liệu tải xuống. Hãy tạo một hồ sơ trình ký mới để test chức năng này."
+      )
+      return
+    }
+
+    const link =
+      document.createElement(
+        "a"
+      )
+
+    link.href =
+      approval.fileData
+
+    link.download =
+      approval.fileName ||
+      "ho-so-trinh-ky"
+
+    document.body.appendChild(
+      link
+    )
+
+    link.click()
+
+    document.body.removeChild(
+      link
+    )
+  }
+
   const getStatusClass = () => {
     if (
-      status === "Hoàn tất"
+      status ===
+      "Hoàn tất"
     ) {
       return "status processing"
     }
 
     if (
-      status === "Chờ ký"
+      status ===
+      "Chờ ký"
     ) {
       return "status waiting"
     }
 
     if (
-      status === "Từ chối" ||
-      status === "Đã thu hồi"
+      status ===
+        "Từ chối" ||
+      status ===
+        "Đã thu hồi"
     ) {
       return "status rejected"
     }
@@ -401,7 +472,9 @@ function ApprovalDetailPage() {
     <div>
       <button
         onClick={() =>
-          navigate("/approval")
+          navigate(
+            "/approval"
+          )
         }
       >
         ← Quay lại
@@ -509,7 +582,9 @@ function ApprovalDetailPage() {
 
       {showCommentForm && (
         <div className="detail-card">
-          <h2>Thêm ý kiến</h2>
+          <h2>
+            Thêm ý kiến
+          </h2>
 
           <div className="form-group">
             <label>
@@ -824,7 +899,11 @@ function ApprovalDetailPage() {
             )}
           </div>
 
-          <button>
+          <button
+            onClick={
+              handleDownload
+            }
+          >
             Tải xuống
           </button>
         </div>
@@ -853,7 +932,7 @@ function ApprovalDetailPage() {
                 </th>
 
                 <th>
-                  Ngày
+                  Thời gian
                 </th>
               </tr>
             </thead>

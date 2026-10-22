@@ -11,39 +11,55 @@ function ServiceRequestDetailPage() {
   const defaultRequests = [
     {
       id: "SR-0001",
-      title: "Cấp quyền sử dụng phần mềm",
+      title:
+        "Cấp quyền sử dụng phần mềm",
       category: "CNTT",
-      requester: "Nguyễn Văn A",
+      requester:
+        "Nguyễn Văn A",
       description:
         "Yêu cầu cấp quyền sử dụng phần mềm phục vụ công việc.",
-      updatedAt: "22/10/2026",
-      status: "Chờ tiếp nhận",
+      updatedAt:
+        "22/10/2026",
+      status:
+        "Chờ tiếp nhận",
       fileName: "",
       fileSize: "",
+      fileData: "",
     },
     {
       id: "SR-0002",
-      title: "Hỗ trợ sửa máy in",
+      title:
+        "Hỗ trợ sửa máy in",
       category: "CNTT",
-      requester: "Trần Thị B",
+      requester:
+        "Trần Thị B",
       description:
         "Máy in tại phòng làm việc không thể in tài liệu.",
-      updatedAt: "21/10/2026",
-      status: "Đang xử lý",
+      updatedAt:
+        "21/10/2026",
+      status:
+        "Đang xử lý",
       fileName: "",
       fileSize: "",
+      fileData: "",
     },
     {
       id: "SR-0003",
-      title: "Yêu cầu cấp văn phòng phẩm",
-      category: "Hành chính",
-      requester: "Lê Văn C",
+      title:
+        "Yêu cầu cấp văn phòng phẩm",
+      category:
+        "Hành chính",
+      requester:
+        "Lê Văn C",
       description:
         "Yêu cầu bổ sung văn phòng phẩm phục vụ công việc.",
-      updatedAt: "20/10/2026",
-      status: "Hoàn tất",
+      updatedAt:
+        "20/10/2026",
+      status:
+        "Hoàn tất",
       fileName: "",
       fileSize: "",
+      fileData: "",
     },
   ]
 
@@ -110,7 +126,8 @@ function ServiceRequestDetailPage() {
 
   const request =
     allRequests.find(
-      (item) => item.id === id
+      (item) =>
+        item.id === id
     )
 
   const routingConfig =
@@ -361,7 +378,7 @@ function ServiceRequestDetailPage() {
       ) || {}
 
     currentReasons[id] =
-      rejectReason
+      rejectReason.trim()
 
     localStorage.setItem(
       "hlcServiceRequestRejectReasons",
@@ -429,7 +446,7 @@ function ServiceRequestDetailPage() {
 
     currentResults[id] = {
       content:
-        resultText,
+        resultText.trim(),
 
       responder:
         handler ||
@@ -494,6 +511,37 @@ function ServiceRequestDetailPage() {
   const handleReopen = () => {
     saveStatus(
       "Đang xử lý"
+    )
+  }
+
+  const handleDownload = () => {
+    if (!request.fileData) {
+      window.alert(
+        "Yêu cầu này chưa có dữ liệu file để tải xuống. Hãy tạo một yêu cầu mới có tệp đính kèm để test chức năng này."
+      )
+      return
+    }
+
+    const link =
+      document.createElement(
+        "a"
+      )
+
+    link.href =
+      request.fileData
+
+    link.download =
+      request.fileName ||
+      "tep-dinh-kem"
+
+    document.body.appendChild(
+      link
+    )
+
+    link.click()
+
+    document.body.removeChild(
+      link
     )
   }
 
@@ -766,7 +814,7 @@ function ServiceRequestDetailPage() {
 
           <div className="form-group">
             <label>
-              Lý do từ chối
+              Lý do từ chối *
             </label>
 
             <textarea
@@ -884,7 +932,7 @@ function ServiceRequestDetailPage() {
 
           <div className="form-group">
             <label>
-              Nội dung kết quả
+              Nội dung kết quả *
             </label>
 
             <textarea
@@ -1143,7 +1191,11 @@ function ServiceRequestDetailPage() {
               )}
             </div>
 
-            <button>
+            <button
+              onClick={
+                handleDownload
+              }
+            >
               Tải xuống
             </button>
           </div>

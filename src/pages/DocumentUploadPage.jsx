@@ -4,29 +4,113 @@ import { useNavigate } from "react-router-dom"
 function DocumentUploadPage() {
   const navigate = useNavigate()
 
-  const [name, setName] = useState("")
-  const [category, setCategory] = useState("")
-  const [description, setDescription] = useState("")
-  const [file, setFile] = useState(null)
-  const [error, setError] = useState("")
-  const [uploading, setUploading] = useState(false)
+  const defaultCategories = [
+    {
+      id: "DOC-CAT-001",
+      name: "Quy chế",
+    },
+    {
+      id: "DOC-CAT-002",
+      name: "Hướng dẫn",
+    },
+    {
+      id: "DOC-CAT-003",
+      name: "Biên bản",
+    },
+    {
+      id: "DOC-CAT-004",
+      name: "Khác",
+    },
+  ]
 
-  const readFileAsDataUrl = (selectedFile) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
+  const savedCategories =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcDocumentCategories"
+      )
+    )
 
-      reader.onload = () => {
-        resolve(reader.result)
-      }
+  const categories =
+    savedCategories !== null
+      ? savedCategories
+      : defaultCategories
 
-      reader.onerror = () => {
-        reject(
-          new Error("Không thể đọc file.")
+  const [name, setName] =
+    useState("")
+
+  const [category, setCategory] =
+    useState("")
+
+  const [
+    description,
+    setDescription,
+  ] = useState("")
+
+  const [file, setFile] =
+    useState(null)
+
+  const [error, setError] =
+    useState("")
+
+  const [uploading, setUploading] =
+    useState(false)
+
+  const readFileAsDataUrl = (
+    selectedFile
+  ) => {
+    return new Promise(
+      (resolve, reject) => {
+        const reader =
+          new FileReader()
+
+        reader.onload = () => {
+          resolve(reader.result)
+        }
+
+        reader.onerror = () => {
+          reject(
+            new Error(
+              "Không thể đọc file."
+            )
+          )
+        }
+
+        reader.readAsDataURL(
+          selectedFile
         )
       }
+    )
+  }
 
-      reader.readAsDataURL(selectedFile)
-    })
+  const generateDocumentId = (
+    savedDocuments
+  ) => {
+    const numbers =
+      savedDocuments
+        .map((item) => {
+          const match =
+            item.id?.match(
+              /^TL-(\d+)$/
+            )
+
+          return match
+            ? Number(match[1])
+            : 0
+        })
+        .filter(
+          (number) =>
+            Number.isFinite(number)
+        )
+
+    const highest =
+      Math.max(
+        3,
+        ...numbers
+      )
+
+    return `TL-${String(
+      highest + 1
+    ).padStart(4, "0")}`
   }
 
   const handleUpload = async () => {
@@ -41,7 +125,6 @@ function DocumentUploadPage() {
       return
     }
 
-    // Giới hạn riêng cho prototype dùng localStorage.
     if (
       file.size >
       2 * 1024 * 1024
@@ -57,7 +140,9 @@ function DocumentUploadPage() {
 
     try {
       const fileData =
-        await readFileAsDataUrl(file)
+        await readFileAsDataUrl(
+          file
+        )
 
       const savedDocuments =
         JSON.parse(
@@ -66,9 +151,10 @@ function DocumentUploadPage() {
           )
         ) || []
 
-      const newId = `TL-${String(
-        savedDocuments.length + 4
-      ).padStart(4, "0")}`
+      const newId =
+        generateDocumentId(
+          savedDocuments
+        )
 
       const today =
         new Date().toLocaleDateString(
@@ -77,24 +163,38 @@ function DocumentUploadPage() {
 
       const newDocument = {
         id: newId,
-        name: name.trim(),
+
+        name:
+          name.trim(),
+
         category,
+
         description:
           description.trim(),
-        version: "v1.0",
-        date: today,
+
+        version:
+          "v1.0",
+
+        date:
+          today,
+
         status:
           "Chờ tiếp nhận",
+
         uploader:
           "Nguyễn Văn A",
+
         fileName:
           file.name,
+
         fileSize: `${(
           file.size /
           1024 /
           1024
         ).toFixed(2)} MB`,
+
         fileData,
+
         note: "",
       }
 
@@ -106,7 +206,9 @@ function DocumentUploadPage() {
         ])
       )
 
-      navigate("/documents")
+      navigate(
+        "/documents"
+      )
     } catch (err) {
       setError(
         "Không thể lưu file. Vui lòng thử lại với file nhỏ hơn."
@@ -120,7 +222,9 @@ function DocumentUploadPage() {
     <div>
       <button
         onClick={() =>
-          navigate("/documents")
+          navigate(
+            "/documents"
+          )
         }
       >
         ← Quay lại
@@ -179,22 +283,26 @@ function DocumentUploadPage() {
                 Chọn loại tài liệu
               </option>
 
-              <option value="Quy chế">
-                Quy chế
-              </option>
-
-              <option value="Hướng dẫn">
-                Hướng dẫn
-              </option>
-
-              <option value="Biên bản">
-                Biên bản
-              </option>
-
-              <option value="Khác">
-                Khác
-              </option>
+              {categories.map(
+                (item) => (
+                  <option
+                    key={item.id}
+                    value={item.name}
+                  >
+                    {item.name}
+                  </option>
+                )
+              )}
             </select>
+
+            {categories.length ===
+              0 && (
+              <small>
+                Chưa có danh mục tài liệu.
+                Vui lòng cấu hình trong
+                Thiết lập hệ thống.
+              </small>
+            )}
           </div>
 
           <div className="form-group">
@@ -223,14 +331,16 @@ function DocumentUploadPage() {
               type="file"
               onChange={(e) =>
                 setFile(
-                  e.target.files[0]
+                  e.target.files[0] ||
+                  null
                 )
               }
             />
 
             {file && (
               <small>
-                Đã chọn: {file.name} -{" "}
+                Đã chọn:{" "}
+                {file.name} -{" "}
                 {(
                   file.size /
                   1024 /
@@ -260,8 +370,14 @@ function DocumentUploadPage() {
 
             <button
               className="primary-button"
-              onClick={handleUpload}
-              disabled={uploading}
+              onClick={
+                handleUpload
+              }
+              disabled={
+                uploading ||
+                categories.length ===
+                  0
+              }
             >
               {uploading
                 ? "Đang tải..."
