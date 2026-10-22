@@ -6,166 +6,118 @@ function NotificationsPage() {
       id: "TB-0001",
       title: "Hồ sơ trình ký đang chờ bạn xử lý",
       content:
-        "Hồ sơ TK-0001 - Đề nghị mua sắm thiết bị đang chờ phê duyệt.",
-      type: "Trình ký",
-      createdAt: "22/10/2026 09:30",
+        "Hồ sơ TK-0001 đang chờ bạn thực hiện xử lý trên hệ thống.",
+      date: "22/10/2026",
       read: false,
     },
-
     {
       id: "TB-0002",
       title: "Yêu cầu dịch vụ đã được xử lý",
       content:
-        "Yêu cầu SR-0002 - Hỗ trợ sửa máy in đã có kết quả xử lý.",
-      type: "Yêu cầu dịch vụ",
-      createdAt: "22/10/2026 08:15",
+        "Yêu cầu dịch vụ SR-0002 đã có kết quả xử lý mới.",
+      date: "22/10/2026",
       read: false,
     },
-
     {
       id: "TB-0003",
       title: "Tài liệu mới được chia sẻ",
       content:
-        "Tài liệu TL-0001 - Quy chế quản lý tài liệu nội bộ đã được chia sẻ với bạn.",
-      type: "Tài liệu",
-      createdAt: "21/10/2026 16:20",
+        "Bạn vừa được chia sẻ một tài liệu trên hệ thống HLC E-Office.",
+      date: "21/10/2026",
       read: true,
     },
   ]
 
-  const getInitialNotifications = () => {
-    const saved =
-      JSON.parse(
-        localStorage.getItem(
-          "hlcNotifications"
-        )
-      ) || null
+  const savedNotifications = JSON.parse(
+    localStorage.getItem("hlcNotifications")
+  )
 
-    return saved || defaultNotifications
-  }
+  const [notifications, setNotifications] = useState(
+    savedNotifications !== null
+      ? savedNotifications
+      : defaultNotifications
+  )
 
-  const [notifications, setNotifications] =
-    useState(
-      getInitialNotifications
-    )
+  const [filter, setFilter] = useState("all")
+  const [selectedNotification, setSelectedNotification] =
+    useState(null)
 
-  const [filter, setFilter] =
-    useState("all")
-
-  const [
-    selectedNotification,
-    setSelectedNotification,
-  ] = useState(null)
-
-  const saveNotifications = (
-    newNotifications
-  ) => {
-    setNotifications(
-      newNotifications
-    )
+  const saveNotifications = (newNotifications) => {
+    setNotifications(newNotifications)
 
     localStorage.setItem(
       "hlcNotifications",
-      JSON.stringify(
-        newNotifications
-      )
+      JSON.stringify(newNotifications)
     )
   }
 
-  const handleOpen = (
-    notification
-  ) => {
-    setSelectedNotification(
-      notification
+  const handleView = (notification) => {
+    setSelectedNotification(notification)
+  }
+
+  const handleMarkRead = (id) => {
+    const updated = notifications.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            read: true,
+          }
+        : item
     )
 
-    // Khi mở thông báo, prototype này
-    // đánh dấu thông báo là đã đọc.
-    const updated =
-      notifications.map(
-        (item) =>
-          item.id ===
-          notification.id
-            ? {
-                ...item,
-                read: true,
-              }
-            : item
-      )
-
     saveNotifications(updated)
+
+    if (
+      selectedNotification &&
+      selectedNotification.id === id
+    ) {
+      setSelectedNotification({
+        ...selectedNotification,
+        read: true,
+      })
+    }
   }
 
-  const handleMarkAsRead = (
-    id
-  ) => {
-    const updated =
-      notifications.map(
-        (item) =>
-          item.id === id
-            ? {
-                ...item,
-                read: true,
-              }
-            : item
-      )
-
-    saveNotifications(updated)
-  }
-
-  const handleDelete = (
-    id
-  ) => {
-    const confirmed =
-      window.confirm(
-        "Bạn có chắc muốn xóa thông báo này?"
-      )
+  const handleDelete = (id) => {
+    const confirmed = window.confirm(
+      "Bạn có chắc muốn xóa thông báo này?"
+    )
 
     if (!confirmed) {
       return
     }
 
-    const updated =
-      notifications.filter(
-        (item) =>
-          item.id !== id
-      )
+    const updated = notifications.filter(
+      (item) => item.id !== id
+    )
 
     saveNotifications(updated)
 
     if (
-      selectedNotification?.id ===
-      id
+      selectedNotification &&
+      selectedNotification.id === id
     ) {
-      setSelectedNotification(
-        null
-      )
+      setSelectedNotification(null)
     }
   }
 
-  const filteredNotifications =
-    notifications.filter(
-      (item) => {
-        if (
-          filter === "unread"
-        ) {
-          return !item.read
-        }
-
-        if (
-          filter === "read"
-        ) {
-          return item.read
-        }
-
-        return true
+  const filteredNotifications = notifications.filter(
+    (item) => {
+      if (filter === "unread") {
+        return !item.read
       }
-    )
 
-  const unreadCount =
-    notifications.filter(
-      (item) => !item.read
-    ).length
+      if (filter === "read") {
+        return item.read
+      }
+
+      return true
+    }
+  )
+
+  const unreadCount = notifications.filter(
+    (item) => !item.read
+  ).length
 
   return (
     <div>
@@ -174,16 +126,15 @@ function NotificationsPage() {
           <h1>Thông báo</h1>
 
           <p>
-            Theo dõi các thông báo
-            từ hệ thống.
+            Theo dõi các thông báo trên hệ thống
+            HLC E-Office.
           </p>
         </div>
 
         <div>
-          Chưa đọc:{" "}
-          <strong>
-            {unreadCount}
-          </strong>
+          <span className="status waiting">
+            {unreadCount} chưa đọc
+          </span>
         </div>
       </div>
 
@@ -191,9 +142,7 @@ function NotificationsPage() {
         <select
           value={filter}
           onChange={(e) =>
-            setFilter(
-              e.target.value
-            )
+            setFilter(e.target.value)
           }
         >
           <option value="all">
@@ -214,10 +163,10 @@ function NotificationsPage() {
         <table>
           <thead>
             <tr>
+              <th>Mã</th>
+              <th>Tiêu đề</th>
+              <th>Ngày</th>
               <th>Trạng thái</th>
-              <th>Nội dung</th>
-              <th>Loại</th>
-              <th>Thời gian</th>
               <th>Thao tác</th>
             </tr>
           </thead>
@@ -226,60 +175,32 @@ function NotificationsPage() {
             {filteredNotifications.map(
               (item) => (
                 <tr key={item.id}>
+                  <td>{item.id}</td>
+
+                  <td className="document-name">
+                    {item.title}
+                  </td>
+
+                  <td>{item.date}</td>
+
                   <td>
-                    <span
-                      className={
-                        item.read
-                          ? "status processing"
-                          : "status pending"
-                      }
-                    >
-                      {item.read
-                        ? "Đã đọc"
-                        : "Chưa đọc"}
-                    </span>
+                    {item.read ? (
+                      <span className="status processing">
+                        Đã đọc
+                      </span>
+                    ) : (
+                      <span className="status pending">
+                        Chưa đọc
+                      </span>
+                    )}
                   </td>
 
                   <td>
-                    <strong>
-                      {item.title}
-                    </strong>
-
-                    <p
-                      style={{
-                        margin:
-                          "5px 0 0",
-                        color:
-                          "#6b7280",
-                      }}
-                    >
-                      {item.content}
-                    </p>
-                  </td>
-
-                  <td>
-                    {item.type}
-                  </td>
-
-                  <td>
-                    {
-                      item.createdAt
-                    }
-                  </td>
-
-                  <td>
-                    <div
-                      style={{
-                        display:
-                          "flex",
-                        gap: "8px",
-                      }}
-                    >
+                    <div className="detail-action-buttons">
                       <button
+                        className="secondary-button"
                         onClick={() =>
-                          handleOpen(
-                            item
-                          )
+                          handleView(item)
                         }
                       >
                         Xem
@@ -287,9 +208,9 @@ function NotificationsPage() {
 
                       {!item.read && (
                         <button
-                          className="secondary-button"
+                          className="primary-button"
                           onClick={() =>
-                            handleMarkAsRead(
+                            handleMarkRead(
                               item.id
                             )
                           }
@@ -333,21 +254,18 @@ function NotificationsPage() {
         <div
           className="detail-card"
           style={{
-            marginTop:
-              "20px",
+            marginTop: "20px",
           }}
         >
           <div className="detail-header-actions">
             <div>
               <h2>
-                {
-                  selectedNotification.title
-                }
+                {selectedNotification.title}
               </h2>
 
               <p>
                 {
-                  selectedNotification.createdAt
+                  selectedNotification.date
                 }
               </p>
             </div>
@@ -371,33 +289,35 @@ function NotificationsPage() {
           </p>
 
           <div
-            className="detail-grid"
+            className="form-actions"
             style={{
-              marginTop:
-                "20px",
+              justifyContent:
+                "flex-start",
             }}
           >
-            <div>
-              <span className="detail-label">
-                Loại thông báo
-              </span>
-
-              <p>
-                {
-                  selectedNotification.type
+            {!selectedNotification.read && (
+              <button
+                className="primary-button"
+                onClick={() =>
+                  handleMarkRead(
+                    selectedNotification.id
+                  )
                 }
-              </p>
-            </div>
+              >
+                Đánh dấu đã đọc
+              </button>
+            )}
 
-            <div>
-              <span className="detail-label">
-                Trạng thái
-              </span>
-
-              <p>
-                Đã đọc
-              </p>
-            </div>
+            <button
+              className="reject-button"
+              onClick={() =>
+                handleDelete(
+                  selectedNotification.id
+                )
+              }
+            >
+              Xóa thông báo
+            </button>
           </div>
         </div>
       )}
