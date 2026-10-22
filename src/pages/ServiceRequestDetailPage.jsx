@@ -8,6 +8,41 @@ function ServiceRequestDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
+  // =========================
+  // VAI TRÒ MÔ PHỎNG
+  // =========================
+
+  const prototypeRoles = [
+    {
+      value: "requester",
+      label: "Người yêu cầu",
+    },
+    {
+      value: "dispatcher",
+      label: "Điều phối viên",
+    },
+    {
+      value: "handler",
+      label: "Người xử lý",
+    },
+  ]
+
+  const savedPrototypeRole =
+    localStorage.getItem(
+      "hlcServiceRequestPrototypeRole"
+    ) || "requester"
+
+  const [
+    currentRole,
+    setCurrentRole,
+  ] = useState(
+    savedPrototypeRole
+  )
+
+  // =========================
+  // DỮ LIỆU YÊU CẦU
+  // =========================
+
   const defaultRequests = [
     {
       id: "SR-0001",
@@ -149,6 +184,10 @@ function ServiceRequestDetailPage() {
   const suggestedHandler =
     routingConfig?.handler || ""
 
+  // =========================
+  // STATE
+  // =========================
+
   const [status, setStatus] =
     useState(
       request
@@ -157,10 +196,12 @@ function ServiceRequestDetailPage() {
         : ""
     )
 
-  const [handler, setHandler] =
-    useState(
-      assignments[id] || ""
-    )
+  const [
+    handler,
+    setHandler,
+  ] = useState(
+    assignments[id] || ""
+  )
 
   const [
     selectedHandler,
@@ -253,6 +294,10 @@ function ServiceRequestDetailPage() {
     setShowCommentForm,
   ] = useState(false)
 
+  // =========================
+  // KHÔNG TÌM THẤY
+  // =========================
+
   if (!request) {
     return (
       <div>
@@ -272,6 +317,10 @@ function ServiceRequestDetailPage() {
       </div>
     )
   }
+
+  // =========================
+  // LƯU DỮ LIỆU
+  // =========================
 
   const saveStatus = (
     newStatus
@@ -340,6 +389,24 @@ function ServiceRequestDetailPage() {
     )
   }
 
+  const handleRoleChange = (
+    event
+  ) => {
+    const role =
+      event.target.value
+
+    setCurrentRole(role)
+
+    localStorage.setItem(
+      "hlcServiceRequestPrototypeRole",
+      role
+    )
+  }
+
+  // =========================
+  // ĐIỀU PHỐI VIÊN
+  // =========================
+
   const handleAccept = () => {
     saveStatus(
       "Chờ phân công"
@@ -355,10 +422,10 @@ function ServiceRequestDetailPage() {
 
     const newItem = {
       type: "request",
-
+      author:
+        "Điều phối viên",
       content:
         supplementReason.trim(),
-
       date:
         new Date().toLocaleString(
           "vi-VN"
@@ -377,41 +444,6 @@ function ServiceRequestDetailPage() {
     setSupplementReason("")
 
     setShowRequestSupplementForm(
-      false
-    )
-  }
-
-  const handleSupplement = () => {
-    if (
-      !supplementContent.trim()
-    ) {
-      return
-    }
-
-    const newItem = {
-      type: "response",
-
-      content:
-        supplementContent.trim(),
-
-      date:
-        new Date().toLocaleString(
-          "vi-VN"
-        ),
-    }
-
-    saveSupplements([
-      ...supplements,
-      newItem,
-    ])
-
-    saveStatus(
-      "Chờ tiếp nhận"
-    )
-
-    setSupplementContent("")
-
-    setShowSupplementForm(
       false
     )
   }
@@ -483,6 +515,98 @@ function ServiceRequestDetailPage() {
     setShowAssignForm(false)
   }
 
+  // =========================
+  // NGƯỜI YÊU CẦU
+  // =========================
+
+  const handleSupplement = () => {
+    if (
+      !supplementContent.trim()
+    ) {
+      return
+    }
+
+    const newItem = {
+      type: "response",
+      author:
+        request.requester,
+      content:
+        supplementContent.trim(),
+      date:
+        new Date().toLocaleString(
+          "vi-VN"
+        ),
+    }
+
+    saveSupplements([
+      ...supplements,
+      newItem,
+    ])
+
+    saveStatus(
+      "Chờ tiếp nhận"
+    )
+
+    setSupplementContent("")
+
+    setShowSupplementForm(
+      false
+    )
+  }
+
+  const handleComplete = () => {
+    const currentEvaluations =
+      JSON.parse(
+        localStorage.getItem(
+          "hlcServiceRequestEvaluations"
+        )
+      ) || {}
+
+    currentEvaluations[id] = {
+      content:
+        evaluationText.trim() ||
+        "Đã xác nhận kết quả xử lý.",
+
+      evaluator:
+        request.requester,
+
+      evaluatedAt:
+        new Date().toLocaleString(
+          "vi-VN"
+        ),
+    }
+
+    localStorage.setItem(
+      "hlcServiceRequestEvaluations",
+      JSON.stringify(
+        currentEvaluations
+      )
+    )
+
+    saveStatus(
+      "Hoàn tất"
+    )
+
+    setShowEvaluationForm(false)
+  }
+
+  const handleReopen = () => {
+    saveStatus(
+      "Đang xử lý"
+    )
+  }
+
+  // =========================
+  // NGƯỜI XỬ LÝ
+  // =========================
+
+  const getHandlerName = () => {
+    return (
+      handler ||
+      "Người xử lý mô phỏng"
+    )
+  }
+
   const handleAddComment = () => {
     if (
       !commentText.trim()
@@ -492,8 +616,7 @@ function ServiceRequestDetailPage() {
 
     const newComment = {
       author:
-        handler ||
-        "Nguyễn Văn A",
+        getHandlerName(),
 
       content:
         commentText.trim(),
@@ -532,8 +655,7 @@ function ServiceRequestDetailPage() {
         resultText.trim(),
 
       responder:
-        handler ||
-        "Nguyễn Văn A",
+        getHandlerName(),
 
       respondedAt:
         new Date().toLocaleString(
@@ -555,47 +677,9 @@ function ServiceRequestDetailPage() {
     setShowResultForm(false)
   }
 
-  const handleComplete = () => {
-    const currentEvaluations =
-      JSON.parse(
-        localStorage.getItem(
-          "hlcServiceRequestEvaluations"
-        )
-      ) || {}
-
-    currentEvaluations[id] = {
-      content:
-        evaluationText.trim() ||
-        "Đã xác nhận kết quả xử lý.",
-
-      evaluator:
-        "Nguyễn Văn A",
-
-      evaluatedAt:
-        new Date().toLocaleString(
-          "vi-VN"
-        ),
-    }
-
-    localStorage.setItem(
-      "hlcServiceRequestEvaluations",
-      JSON.stringify(
-        currentEvaluations
-      )
-    )
-
-    saveStatus(
-      "Hoàn tất"
-    )
-
-    setShowEvaluationForm(false)
-  }
-
-  const handleReopen = () => {
-    saveStatus(
-      "Đang xử lý"
-    )
-  }
+  // =========================
+  // FILE
+  // =========================
 
   const handleDownload = () => {
     if (!request.fileData) {
@@ -628,10 +712,13 @@ function ServiceRequestDetailPage() {
     )
   }
 
+  // =========================
+  // HIỂN THỊ
+  // =========================
+
   const getStatusClass = () => {
     if (
-      status ===
-      "Hoàn tất"
+      status === "Hoàn tất"
     ) {
       return "status processing"
     }
@@ -646,8 +733,7 @@ function ServiceRequestDetailPage() {
     }
 
     if (
-      status ===
-      "Từ chối"
+      status === "Từ chối"
     ) {
       return "status rejected"
     }
@@ -660,6 +746,25 @@ function ServiceRequestDetailPage() {
 
   const savedEvaluation =
     evaluations[id]
+
+  const currentRoleLabel =
+    prototypeRoles.find(
+      (role) =>
+        role.value ===
+        currentRole
+    )?.label || ""
+
+  const isRequester =
+    currentRole ===
+    "requester"
+
+  const isDispatcher =
+    currentRole ===
+    "dispatcher"
+
+  const isHandler =
+    currentRole ===
+    "handler"
 
   return (
     <div>
@@ -686,123 +791,247 @@ function ServiceRequestDetailPage() {
         </div>
 
         <div className="detail-action-buttons">
-          {status ===
-            "Chờ tiếp nhận" && (
-            <>
-              <button
-                className="accept-button"
-                onClick={
-                  handleAccept
-                }
-              >
-                Tiếp nhận
-              </button>
+          {/* ĐIỀU PHỐI VIÊN */}
 
-              <button
-                className="secondary-button"
-                onClick={() =>
-                  setShowRequestSupplementForm(
-                    true
-                  )
-                }
-              >
-                Yêu cầu bổ sung
-              </button>
+          {isDispatcher &&
+            status ===
+              "Chờ tiếp nhận" && (
+              <>
+                <button
+                  className="accept-button"
+                  onClick={
+                    handleAccept
+                  }
+                >
+                  Tiếp nhận
+                </button>
 
-              <button
-                className="reject-button"
-                onClick={() =>
-                  setShowRejectForm(
-                    true
-                  )
-                }
-              >
-                Từ chối
-              </button>
-            </>
-          )}
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    setShowRequestSupplementForm(
+                      true
+                    )
+                  }
+                >
+                  Yêu cầu bổ sung
+                </button>
 
-          {status ===
-            "Chờ bổ sung" && (
-            <button
-              className="primary-button"
-              onClick={() =>
-                setShowSupplementForm(
-                  true
-                )
-              }
-            >
-              Bổ sung thông tin
-            </button>
-          )}
+                <button
+                  className="reject-button"
+                  onClick={() =>
+                    setShowRejectForm(
+                      true
+                    )
+                  }
+                >
+                  Từ chối
+                </button>
+              </>
+            )}
 
-          {status ===
-            "Chờ phân công" && (
-            <button
-              className="primary-button"
-              onClick={() =>
-                setShowAssignForm(
-                  true
-                )
-              }
-            >
-              Phân công xử lý
-            </button>
-          )}
-
-          {status ===
-            "Đang xử lý" && (
-            <>
-              <button
-                className="secondary-button"
-                onClick={() =>
-                  setShowCommentForm(
-                    true
-                  )
-                }
-              >
-                Thêm ý kiến
-              </button>
-
+          {isDispatcher &&
+            status ===
+              "Chờ phân công" && (
               <button
                 className="primary-button"
                 onClick={() =>
-                  setShowResultForm(
+                  setShowAssignForm(
                     true
                   )
                 }
               >
-                Phản hồi kết quả
+                Phân công xử lý
               </button>
-            </>
-          )}
+            )}
 
-          {status ===
-            "Chờ đánh giá" && (
-            <>
-              <button
-                className="secondary-button"
-                onClick={
-                  handleReopen
-                }
-              >
-                Mở lại yêu cầu
-              </button>
+          {/* NGƯỜI YÊU CẦU */}
 
+          {isRequester &&
+            status ===
+              "Chờ bổ sung" && (
               <button
                 className="primary-button"
                 onClick={() =>
-                  setShowEvaluationForm(
+                  setShowSupplementForm(
                     true
                   )
                 }
               >
-                Đánh giá kết quả
+                Bổ sung thông tin
               </button>
-            </>
-          )}
+            )}
+
+          {isRequester &&
+            status ===
+              "Chờ đánh giá" && (
+              <>
+                <button
+                  className="secondary-button"
+                  onClick={
+                    handleReopen
+                  }
+                >
+                  Mở lại yêu cầu
+                </button>
+
+                <button
+                  className="primary-button"
+                  onClick={() =>
+                    setShowEvaluationForm(
+                      true
+                    )
+                  }
+                >
+                  Đánh giá kết quả
+                </button>
+              </>
+            )}
+
+          {/* NGƯỜI XỬ LÝ */}
+
+          {isHandler &&
+            status ===
+              "Đang xử lý" && (
+              <>
+                <button
+                  className="secondary-button"
+                  onClick={() =>
+                    setShowCommentForm(
+                      true
+                    )
+                  }
+                >
+                  Thêm ý kiến
+                </button>
+
+                <button
+                  className="primary-button"
+                  onClick={() =>
+                    setShowResultForm(
+                      true
+                    )
+                  }
+                >
+                  Phản hồi kết quả
+                </button>
+              </>
+            )}
         </div>
       </div>
+
+      {/* VAI TRÒ MÔ PHỎNG */}
+
+      <div className="detail-card">
+        <h2>
+          Vai trò mô phỏng
+        </h2>
+
+        <p>
+          Chọn actor đang thao tác để
+          kiểm thử luồng nghiệp vụ của
+          yêu cầu dịch vụ.
+        </p>
+
+        <div className="form-group">
+          <label>
+            Vai trò đang thao tác
+          </label>
+
+          <select
+            value={currentRole}
+            onChange={
+              handleRoleChange
+            }
+          >
+            {prototypeRoles.map(
+              (role) => (
+                <option
+                  key={
+                    role.value
+                  }
+                  value={
+                    role.value
+                  }
+                >
+                  {role.label}
+                </option>
+              )
+            )}
+          </select>
+        </div>
+
+        <div className="settings-note">
+          Đang mô phỏng:{" "}
+          <strong>
+            {currentRoleLabel}
+          </strong>
+        </div>
+      </div>
+
+      {/* THÔNG BÁO AI ĐANG CẦN XỬ LÝ */}
+
+      {status ===
+        "Chờ tiếp nhận" &&
+        !isDispatcher && (
+          <div className="settings-note">
+            Yêu cầu hiện đang chờ{" "}
+            <strong>
+              Điều phối viên
+            </strong>{" "}
+            kiểm tra và tiếp nhận.
+          </div>
+        )}
+
+      {status ===
+        "Chờ bổ sung" &&
+        !isRequester && (
+          <div className="settings-note">
+            Yêu cầu hiện đang chờ{" "}
+            <strong>
+              Người yêu cầu
+            </strong>{" "}
+            bổ sung thông tin.
+          </div>
+        )}
+
+      {status ===
+        "Chờ phân công" &&
+        !isDispatcher && (
+          <div className="settings-note">
+            Yêu cầu hiện đang chờ{" "}
+            <strong>
+              Điều phối viên
+            </strong>{" "}
+            phân công xử lý.
+          </div>
+        )}
+
+      {status ===
+        "Đang xử lý" &&
+        !isHandler && (
+          <div className="settings-note">
+            Yêu cầu hiện đang được{" "}
+            <strong>
+              Người xử lý
+            </strong>{" "}
+            xử lý.
+          </div>
+        )}
+
+      {status ===
+        "Chờ đánh giá" &&
+        !isRequester && (
+          <div className="settings-note">
+            Yêu cầu hiện đang chờ{" "}
+            <strong>
+              Người yêu cầu
+            </strong>{" "}
+            đánh giá kết quả.
+          </div>
+        )}
+
+      {/* YÊU CẦU BỔ SUNG */}
 
       {showRequestSupplementForm && (
         <div className="detail-card">
@@ -853,6 +1082,8 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
+      {/* BỔ SUNG THÔNG TIN */}
+
       {showSupplementForm && (
         <div className="detail-card">
           <h2>
@@ -902,6 +1133,8 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
+      {/* TỪ CHỐI */}
+
       {showRejectForm && (
         <div className="detail-card">
           <h2>
@@ -950,6 +1183,8 @@ function ServiceRequestDetailPage() {
           </div>
         </div>
       )}
+
+      {/* PHÂN CÔNG */}
 
       {showAssignForm && (
         <div className="detail-card">
@@ -1020,6 +1255,8 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
+      {/* COMMENT */}
+
       {showCommentForm && (
         <div className="detail-card">
           <h2>
@@ -1071,6 +1308,8 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
+      {/* PHẢN HỒI KẾT QUẢ */}
+
       {showResultForm && (
         <div className="detail-card">
           <h2>
@@ -1119,6 +1358,8 @@ function ServiceRequestDetailPage() {
           </div>
         </div>
       )}
+
+      {/* ĐÁNH GIÁ */}
 
       {showEvaluationForm && (
         <div className="detail-card">
@@ -1169,6 +1410,8 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
+      {/* LÝ DO TỪ CHỐI */}
+
       {status ===
         "Từ chối" &&
         rejectReasons[id] && (
@@ -1179,6 +1422,8 @@ function ServiceRequestDetailPage() {
             {rejectReasons[id]}
           </div>
         )}
+
+      {/* THÔNG TIN */}
 
       <div className="detail-card">
         <h2>
@@ -1266,6 +1511,8 @@ function ServiceRequestDetailPage() {
         </div>
       </div>
 
+      {/* MÔ TẢ */}
+
       <div className="detail-card">
         <h2>
           Mô tả yêu cầu
@@ -1277,6 +1524,8 @@ function ServiceRequestDetailPage() {
         </p>
       </div>
 
+      {/* LỊCH SỬ BỔ SUNG */}
+
       {supplements.length > 0 && (
         <div className="detail-card">
           <h2>
@@ -1287,6 +1536,7 @@ function ServiceRequestDetailPage() {
             <thead>
               <tr>
                 <th>Loại</th>
+                <th>Người thực hiện</th>
                 <th>Nội dung</th>
                 <th>Thời gian</th>
               </tr>
@@ -1304,6 +1554,11 @@ function ServiceRequestDetailPage() {
                     </td>
 
                     <td>
+                      {item.author ||
+                        "-"}
+                    </td>
+
+                    <td>
                       {item.content}
                     </td>
 
@@ -1318,6 +1573,8 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
+      {/* Ý KIẾN */}
+
       {comments.length > 0 && (
         <div className="detail-card">
           <h2>
@@ -1330,9 +1587,11 @@ function ServiceRequestDetailPage() {
                 <th>
                   Người gửi
                 </th>
+
                 <th>
                   Nội dung
                 </th>
+
                 <th>
                   Thời gian
                 </th>
@@ -1371,6 +1630,8 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
+      {/* FILE */}
+
       {request.fileName && (
         <div className="detail-card">
           <h2>
@@ -1402,6 +1663,8 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
+      {/* KẾT QUẢ */}
+
       {savedResult && (
         <div className="detail-card">
           <h2>
@@ -1419,7 +1682,9 @@ function ServiceRequestDetailPage() {
               </span>
 
               <p>
-                {savedResult.responder}
+                {
+                  savedResult.responder
+                }
               </p>
             </div>
 
@@ -1429,12 +1694,16 @@ function ServiceRequestDetailPage() {
               </span>
 
               <p>
-                {savedResult.respondedAt}
+                {
+                  savedResult.respondedAt
+                }
               </p>
             </div>
           </div>
         </div>
       )}
+
+      {/* ĐÁNH GIÁ */}
 
       {savedEvaluation && (
         <div className="detail-card">
@@ -1443,7 +1712,9 @@ function ServiceRequestDetailPage() {
           </h2>
 
           <p>
-            {savedEvaluation.content}
+            {
+              savedEvaluation.content
+            }
           </p>
 
           <div className="detail-grid">
@@ -1453,7 +1724,9 @@ function ServiceRequestDetailPage() {
               </span>
 
               <p>
-                {savedEvaluation.evaluator}
+                {
+                  savedEvaluation.evaluator
+                }
               </p>
             </div>
 
@@ -1463,12 +1736,27 @@ function ServiceRequestDetailPage() {
               </span>
 
               <p>
-                {savedEvaluation.evaluatedAt}
+                {
+                  savedEvaluation.evaluatedAt
+                }
               </p>
             </div>
           </div>
         </div>
       )}
+
+      <div className="settings-note">
+        <strong>
+          Ghi chú prototype
+        </strong>
+
+        <p>
+          Vai trò mô phỏng chỉ dùng để
+          kiểm thử luồng Use Case khi
+          prototype chưa có đăng nhập và
+          phân quyền thực tế.
+        </p>
+      </div>
     </div>
   )
 }
