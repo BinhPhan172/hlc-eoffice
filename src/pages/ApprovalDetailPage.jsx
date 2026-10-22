@@ -1,0 +1,896 @@
+import { useState } from "react"
+import {
+  useNavigate,
+  useParams,
+} from "react-router-dom"
+
+function ApprovalDetailPage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+
+  const currentUser = "Nguyễn Văn A"
+
+  const defaultApprovals = [
+    {
+      id: "TK-0001",
+      name:
+        "Đề nghị mua sắm thiết bị",
+      description:
+        "Đề nghị phê duyệt kế hoạch mua sắm thiết bị phục vụ công việc.",
+      creator: "Nguyễn Văn A",
+      approver: "Trần Thị B",
+      updatedAt: "22/10/2026",
+      status: "Chờ phê duyệt",
+      fileName:
+        "de-nghi-mua-sam-thiet-bi.pdf",
+      fileSize: "2.1 MB",
+    },
+
+    {
+      id: "TK-0002",
+      name:
+        "Quyết định điều động nhân sự",
+      description:
+        "Hồ sơ quyết định điều động nhân sự.",
+      creator: "Trần Thị B",
+      approver: "Lê Văn C",
+      updatedAt: "21/10/2026",
+      status: "Chờ ký",
+      fileName:
+        "quyet-dinh-dieu-dong.pdf",
+      fileSize: "1.5 MB",
+    },
+
+    {
+      id: "TK-0003",
+      name:
+        "Đề xuất kế hoạch đào tạo",
+      description:
+        "Đề xuất kế hoạch đào tạo nội bộ.",
+      creator: "Lê Văn C",
+      approver: "Phạm Văn D",
+      updatedAt: "20/10/2026",
+      status: "Hoàn tất",
+      fileName:
+        "ke-hoach-dao-tao.pdf",
+      fileSize: "3.0 MB",
+    },
+  ]
+
+  const savedApprovals =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcApprovals"
+      )
+    ) || []
+
+  const statusOverrides =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcApprovalStatus"
+      )
+    ) || {}
+
+  const savedComments =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcApprovalComments"
+      )
+    ) || {}
+
+  const rejectReasons =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcApprovalRejectReasons"
+      )
+    ) || {}
+
+  const savedDelegates =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcApprovalDelegates"
+      )
+    ) || {}
+
+  const signatures =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcApprovalSignatures"
+      )
+    ) || {}
+
+  const allApprovals = [
+    ...defaultApprovals,
+    ...savedApprovals,
+  ]
+
+  const approval =
+    allApprovals.find(
+      (item) => item.id === id
+    )
+
+  const [status, setStatus] =
+    useState(
+      approval
+        ? statusOverrides[id] ||
+            approval.status
+        : ""
+    )
+
+  const [comments, setComments] =
+    useState(
+      savedComments[id] || []
+    )
+
+  const [
+    commentText,
+    setCommentText,
+  ] = useState("")
+
+  const [
+    rejectReason,
+    setRejectReason,
+  ] = useState("")
+
+  const [delegate, setDelegate] =
+    useState(
+      savedDelegates[id] || ""
+    )
+
+  const [
+    selectedDelegate,
+    setSelectedDelegate,
+  ] = useState("")
+
+  const [
+    showCommentForm,
+    setShowCommentForm,
+  ] = useState(false)
+
+  const [
+    showRejectForm,
+    setShowRejectForm,
+  ] = useState(false)
+
+  const [
+    showDelegateForm,
+    setShowDelegateForm,
+  ] = useState(false)
+
+  if (!approval) {
+    return (
+      <div>
+        <h1>
+          Không tìm thấy hồ sơ trình ký
+        </h1>
+
+        <button
+          onClick={() =>
+            navigate("/approval")
+          }
+        >
+          ← Quay lại danh sách
+        </button>
+      </div>
+    )
+  }
+
+  const saveStatus = (
+    newStatus
+  ) => {
+    const current =
+      JSON.parse(
+        localStorage.getItem(
+          "hlcApprovalStatus"
+        )
+      ) || {}
+
+    current[id] = newStatus
+
+    localStorage.setItem(
+      "hlcApprovalStatus",
+      JSON.stringify(current)
+    )
+
+    setStatus(newStatus)
+  }
+
+  const saveComments = (
+    newComments
+  ) => {
+    const current =
+      JSON.parse(
+        localStorage.getItem(
+          "hlcApprovalComments"
+        )
+      ) || {}
+
+    current[id] =
+      newComments
+
+    localStorage.setItem(
+      "hlcApprovalComments",
+      JSON.stringify(current)
+    )
+
+    setComments(newComments)
+  }
+
+  const handleApprove = () => {
+    saveStatus("Chờ ký")
+
+    const newComment = {
+      author: currentUser,
+      content:
+        "Đã phê duyệt hồ sơ.",
+      date:
+        new Date().toLocaleDateString(
+          "vi-VN"
+        ),
+    }
+
+    saveComments([
+      ...comments,
+      newComment,
+    ])
+  }
+
+  const handleReject = () => {
+    if (
+      !rejectReason.trim()
+    ) {
+      return
+    }
+
+    saveStatus("Từ chối")
+
+    const currentReasons =
+      JSON.parse(
+        localStorage.getItem(
+          "hlcApprovalRejectReasons"
+        )
+      ) || {}
+
+    currentReasons[id] =
+      rejectReason
+
+    localStorage.setItem(
+      "hlcApprovalRejectReasons",
+      JSON.stringify(
+        currentReasons
+      )
+    )
+
+    const newComment = {
+      author: currentUser,
+      content:
+        `Từ chối: ${rejectReason}`,
+      date:
+        new Date().toLocaleDateString(
+          "vi-VN"
+        ),
+    }
+
+    saveComments([
+      ...comments,
+      newComment,
+    ])
+
+    setRejectReason("")
+    setShowRejectForm(false)
+  }
+
+  const handleAddComment = () => {
+    if (
+      !commentText.trim()
+    ) {
+      return
+    }
+
+    const newComment = {
+      author: currentUser,
+      content:
+        commentText,
+      date:
+        new Date().toLocaleDateString(
+          "vi-VN"
+        ),
+    }
+
+    saveComments([
+      ...comments,
+      newComment,
+    ])
+
+    setCommentText("")
+    setShowCommentForm(false)
+  }
+
+  const handleDelegate = () => {
+    if (!selectedDelegate) {
+      return
+    }
+
+    const current =
+      JSON.parse(
+        localStorage.getItem(
+          "hlcApprovalDelegates"
+        )
+      ) || {}
+
+    current[id] =
+      selectedDelegate
+
+    localStorage.setItem(
+      "hlcApprovalDelegates",
+      JSON.stringify(current)
+    )
+
+    setDelegate(
+      selectedDelegate
+    )
+
+    const newComment = {
+      author: currentUser,
+      content:
+        `Đã ủy quyền ký cho ${selectedDelegate}.`,
+      date:
+        new Date().toLocaleDateString(
+          "vi-VN"
+        ),
+    }
+
+    saveComments([
+      ...comments,
+      newComment,
+    ])
+
+    setSelectedDelegate("")
+    setShowDelegateForm(false)
+  }
+
+  const handleWithdraw = () => {
+    const confirmed =
+      window.confirm(
+        "Bạn có chắc muốn thu hồi hồ sơ trình ký này?"
+      )
+
+    if (!confirmed) {
+      return
+    }
+
+    saveStatus(
+      "Đã thu hồi"
+    )
+  }
+
+  const getStatusClass = () => {
+    if (
+      status === "Hoàn tất"
+    ) {
+      return "status processing"
+    }
+
+    if (
+      status === "Chờ ký"
+    ) {
+      return "status waiting"
+    }
+
+    if (
+      status === "Từ chối" ||
+      status === "Đã thu hồi"
+    ) {
+      return "status rejected"
+    }
+
+    return "status pending"
+  }
+
+  const signature =
+    signatures[id]
+
+  const canWithdraw =
+    approval.creator ===
+      currentUser &&
+    status !== "Hoàn tất" &&
+    status !== "Từ chối" &&
+    status !== "Đã thu hồi"
+
+  return (
+    <div>
+      <button
+        onClick={() =>
+          navigate("/approval")
+        }
+      >
+        ← Quay lại
+      </button>
+
+      <div className="detail-header detail-header-actions">
+        <div>
+          <h1>
+            Chi tiết hồ sơ trình ký
+          </h1>
+
+          <p>
+            Mã hồ sơ:{" "}
+            {approval.id}
+          </p>
+        </div>
+
+        <div className="detail-action-buttons">
+          {status !==
+            "Đã thu hồi" && (
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setShowCommentForm(
+                  true
+                )
+              }
+            >
+              Thêm ý kiến
+            </button>
+          )}
+
+          {canWithdraw && (
+            <button
+              className="reject-button"
+              onClick={
+                handleWithdraw
+              }
+            >
+              Thu hồi
+            </button>
+          )}
+
+          {status ===
+            "Chờ phê duyệt" && (
+            <>
+              <button
+                className="accept-button"
+                onClick={
+                  handleApprove
+                }
+              >
+                Phê duyệt
+              </button>
+
+              <button
+                className="reject-button"
+                onClick={() =>
+                  setShowRejectForm(
+                    true
+                  )
+                }
+              >
+                Từ chối
+              </button>
+            </>
+          )}
+
+          {status ===
+            "Chờ ký" && (
+            <>
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  setShowDelegateForm(
+                    true
+                  )
+                }
+              >
+                Ủy quyền ký
+              </button>
+
+              <button
+                className="primary-button"
+                onClick={() =>
+                  navigate(
+                    `/approval/${id}/sign`
+                  )
+                }
+              >
+                Ký tài liệu
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {status ===
+        "Đã thu hồi" && (
+        <div className="reject-message">
+          Hồ sơ trình ký này đã được
+          người khởi tạo thu hồi.
+        </div>
+      )}
+
+      {showCommentForm && (
+        <div className="detail-card">
+          <h2>Thêm ý kiến</h2>
+
+          <div className="form-group">
+            <label>
+              Nội dung
+            </label>
+
+            <textarea
+              rows="4"
+              placeholder="Nhập ý kiến..."
+              value={
+                commentText
+              }
+              onChange={(e) =>
+                setCommentText(
+                  e.target.value
+                )
+              }
+            />
+          </div>
+
+          <div className="form-actions">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setShowCommentForm(
+                  false
+                )
+              }
+            >
+              Hủy
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={
+                handleAddComment
+              }
+            >
+              Gửi ý kiến
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showRejectForm && (
+        <div className="detail-card">
+          <h2>
+            Từ chối hồ sơ
+          </h2>
+
+          <div className="form-group">
+            <label>
+              Lý do từ chối
+            </label>
+
+            <textarea
+              rows="4"
+              placeholder="Nhập lý do từ chối..."
+              value={
+                rejectReason
+              }
+              onChange={(e) =>
+                setRejectReason(
+                  e.target.value
+                )
+              }
+            />
+          </div>
+
+          <div className="form-actions">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setShowRejectForm(
+                  false
+                )
+              }
+            >
+              Hủy
+            </button>
+
+            <button
+              className="reject-button"
+              onClick={
+                handleReject
+              }
+            >
+              Xác nhận từ chối
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showDelegateForm && (
+        <div className="detail-card">
+          <h2>
+            Ủy quyền ký
+          </h2>
+
+          <div className="form-group">
+            <label>
+              Người được ủy quyền
+            </label>
+
+            <select
+              value={
+                selectedDelegate
+              }
+              onChange={(e) =>
+                setSelectedDelegate(
+                  e.target.value
+                )
+              }
+            >
+              <option value="">
+                Chọn người được ủy quyền
+              </option>
+
+              <option value="Trần Thị B">
+                Trần Thị B
+              </option>
+
+              <option value="Lê Văn C">
+                Lê Văn C
+              </option>
+
+              <option value="Phạm Văn D">
+                Phạm Văn D
+              </option>
+            </select>
+          </div>
+
+          <div className="form-actions">
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setShowDelegateForm(
+                  false
+                )
+              }
+            >
+              Hủy
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={
+                handleDelegate
+              }
+            >
+              Xác nhận ủy quyền
+            </button>
+          </div>
+        </div>
+      )}
+
+      {status ===
+        "Từ chối" &&
+        rejectReasons[id] && (
+          <div className="reject-message">
+            <strong>
+              Lý do từ chối:
+            </strong>{" "}
+            {rejectReasons[id]}
+          </div>
+        )}
+
+      <div className="detail-card">
+        <h2>
+          Thông tin hồ sơ
+        </h2>
+
+        <div className="detail-grid">
+          <div>
+            <span className="detail-label">
+              Tên hồ sơ
+            </span>
+
+            <p>
+              {approval.name}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Trạng thái
+            </span>
+
+            <p>
+              <span
+                className={
+                  getStatusClass()
+                }
+              >
+                {status}
+              </span>
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Người khởi tạo
+            </span>
+
+            <p>
+              {approval.creator}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Người phê duyệt
+            </span>
+
+            <p>
+              {approval.approver ||
+                "Chưa xác định"}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Người được ủy quyền ký
+            </span>
+
+            <p>
+              {delegate ||
+                "Chưa có"}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Ngày cập nhật
+            </span>
+
+            <p>
+              {approval.updatedAt}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {signature && (
+        <div className="detail-card">
+          <h2>
+            Thông tin ký số
+          </h2>
+
+          <div className="detail-grid">
+            <div>
+              <span className="detail-label">
+                Người ký
+              </span>
+
+              <p>
+                {signature.signer}
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Phương thức
+              </span>
+
+              <p>
+                {signature.method}
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Thời gian ký
+              </span>
+
+              <p>
+                {signature.signedAt}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="detail-card">
+        <h2>
+          Nội dung trình ký
+        </h2>
+
+        <p>
+          {approval.description ||
+            "Không có mô tả."}
+        </p>
+      </div>
+
+      <div className="detail-card">
+        <h2>
+          Tệp trình ký
+        </h2>
+
+        <div className="file-row">
+          <div>
+            <strong>
+              {approval.fileName ||
+                "Không có tệp"}
+            </strong>
+
+            {approval.fileSize && (
+              <p>
+                Dung lượng:{" "}
+                {approval.fileSize}
+              </p>
+            )}
+          </div>
+
+          <button>
+            Tải xuống
+          </button>
+        </div>
+      </div>
+
+      <div className="detail-card">
+        <h2>
+          Ý kiến xử lý
+        </h2>
+
+        {comments.length ===
+        0 ? (
+          <p>
+            Chưa có ý kiến xử lý.
+          </p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  Người gửi
+                </th>
+
+                <th>
+                  Nội dung
+                </th>
+
+                <th>
+                  Ngày
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {comments.map(
+                (
+                  comment,
+                  index
+                ) => (
+                  <tr key={index}>
+                    <td>
+                      {
+                        comment.author
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        comment.content
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        comment.date
+                      }
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default ApprovalDetailPage
