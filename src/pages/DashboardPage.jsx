@@ -57,8 +57,7 @@ function DashboardPage() {
   const pendingDocuments =
     documents.filter(
       (item) =>
-        item.status ===
-        "Chờ tiếp nhận"
+        item.status === "Chờ tiếp nhận"
     )
 
   // =========================
@@ -106,8 +105,7 @@ function DashboardPage() {
   const pendingApprovals =
     approvals.filter(
       (item) =>
-        item.status ===
-          "Chờ phê duyệt" ||
+        item.status === "Chờ phê duyệt" ||
         item.status === "Chờ ký"
     )
 
@@ -231,11 +229,19 @@ function DashboardPage() {
       route: `/service-requests/${item.id}`,
     }))
 
-  const workItems = [
+  // Tổng số công việc thật
+  const allWorkItems = [
     ...documentTasks,
     ...approvalTasks,
     ...requestTasks,
-  ].slice(0, 8)
+  ]
+
+  const totalWorkCount =
+    allWorkItems.length
+
+  // Dashboard chỉ hiển thị tối đa 8 việc
+  const workItems =
+    allWorkItems.slice(0, 8)
 
   const getStatusClass = (
     status
@@ -290,7 +296,7 @@ function DashboardPage() {
           </span>
 
           <strong>
-            {workItems.length}
+            {totalWorkCount}
           </strong>
 
           <small>
@@ -420,7 +426,7 @@ function DashboardPage() {
             </div>
 
             <span className="work-count">
-              {workItems.length} việc
+              {totalWorkCount} việc
             </span>
           </div>
 
@@ -435,7 +441,8 @@ function DashboardPage() {
               </h3>
 
               <p>
-                Các công việc hiện tại đã được xử lý.
+                Các công việc hiện tại
+                đã được xử lý.
               </p>
             </div>
           ) : (
@@ -500,6 +507,25 @@ function DashboardPage() {
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {totalWorkCount > 8 && (
+            <div
+              style={{
+                padding: "14px 20px",
+                borderTop:
+                  "1px solid #e5e7eb",
+                color: "#6b7280",
+                fontSize: "13px",
+              }}
+            >
+              Dashboard đang hiển thị 8
+              công việc đầu tiên trong tổng số{" "}
+              <strong>
+                {totalWorkCount}
+              </strong>{" "}
+              công việc cần theo dõi.
             </div>
           )}
         </div>

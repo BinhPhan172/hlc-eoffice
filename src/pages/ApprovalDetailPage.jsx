@@ -8,70 +8,64 @@ function ApprovalDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const currentUser =
-    "Nguyễn Văn A"
+  const prototypeUsers = [
+    "Nguyễn Văn A",
+    "Trần Thị B",
+    "Lê Văn C",
+    "Phạm Văn D",
+  ]
+
+  const savedPrototypeUser =
+    localStorage.getItem(
+      "hlcPrototypeUser"
+    ) || "Nguyễn Văn A"
+
+  const [currentUser, setCurrentUser] =
+    useState(savedPrototypeUser)
 
   const defaultApprovals = [
     {
       id: "TK-0001",
-      name:
-        "Đề nghị mua sắm thiết bị",
+      name: "Đề nghị mua sắm thiết bị",
       description:
         "Đề nghị phê duyệt kế hoạch mua sắm thiết bị phục vụ công việc.",
-      creator:
-        "Nguyễn Văn A",
-      approver:
-        "Trần Thị B",
-      updatedAt:
-        "22/10/2026",
-      status:
-        "Chờ phê duyệt",
+      creator: "Nguyễn Văn A",
+      approver: "Trần Thị B",
+      updatedAt: "22/10/2026",
+      status: "Chờ phê duyệt",
       fileName:
         "de-nghi-mua-sam-thiet-bi.pdf",
-      fileSize:
-        "2.1 MB",
+      fileSize: "2.1 MB",
       fileData: "",
     },
-
     {
       id: "TK-0002",
       name:
         "Quyết định điều động nhân sự",
       description:
         "Hồ sơ quyết định điều động nhân sự.",
-      creator:
-        "Trần Thị B",
-      approver:
-        "Lê Văn C",
-      updatedAt:
-        "21/10/2026",
-      status:
-        "Chờ ký",
+      creator: "Trần Thị B",
+      approver: "Lê Văn C",
+      updatedAt: "21/10/2026",
+      status: "Chờ ký",
       fileName:
         "quyet-dinh-dieu-dong.pdf",
-      fileSize:
-        "1.5 MB",
+      fileSize: "1.5 MB",
       fileData: "",
     },
-
     {
       id: "TK-0003",
       name:
         "Đề xuất kế hoạch đào tạo",
       description:
         "Đề xuất kế hoạch đào tạo nội bộ.",
-      creator:
-        "Lê Văn C",
-      approver:
-        "Phạm Văn D",
-      updatedAt:
-        "20/10/2026",
-      status:
-        "Hoàn tất",
+      creator: "Lê Văn C",
+      approver: "Phạm Văn D",
+      updatedAt: "20/10/2026",
+      status: "Hoàn tất",
       fileName:
         "ke-hoach-dao-tao.pdf",
-      fileSize:
-        "3.0 MB",
+      fileSize: "3.0 MB",
       fileData: "",
     },
   ]
@@ -125,8 +119,7 @@ function ApprovalDetailPage() {
 
   const approval =
     allApprovals.find(
-      (item) =>
-        item.id === id
+      (item) => item.id === id
     )
 
   const [status, setStatus] =
@@ -186,14 +179,26 @@ function ApprovalDetailPage() {
 
         <button
           onClick={() =>
-            navigate(
-              "/approval"
-            )
+            navigate("/approval")
           }
         >
           ← Quay lại danh sách
         </button>
       </div>
+    )
+  }
+
+  const handleChangePrototypeUser = (
+    event
+  ) => {
+    const user =
+      event.target.value
+
+    setCurrentUser(user)
+
+    localStorage.setItem(
+      "hlcPrototypeUser",
+      user
     )
   }
 
@@ -240,9 +245,7 @@ function ApprovalDetailPage() {
   }
 
   const handleApprove = () => {
-    saveStatus(
-      "Chờ ký"
-    )
+    saveStatus("Chờ ký")
 
     const newComment = {
       author: currentUser,
@@ -261,15 +264,11 @@ function ApprovalDetailPage() {
   }
 
   const handleReject = () => {
-    if (
-      !rejectReason.trim()
-    ) {
+    if (!rejectReason.trim()) {
       return
     }
 
-    saveStatus(
-      "Từ chối"
-    )
+    saveStatus("Từ chối")
 
     const currentReasons =
       JSON.parse(
@@ -289,12 +288,8 @@ function ApprovalDetailPage() {
     )
 
     const newComment = {
-      author:
-        currentUser,
-
-      content:
-        `Từ chối: ${rejectReason.trim()}`,
-
+      author: currentUser,
+      content: `Từ chối: ${rejectReason.trim()}`,
       date:
         new Date().toLocaleString(
           "vi-VN"
@@ -311,19 +306,14 @@ function ApprovalDetailPage() {
   }
 
   const handleAddComment = () => {
-    if (
-      !commentText.trim()
-    ) {
+    if (!commentText.trim()) {
       return
     }
 
     const newComment = {
-      author:
-        currentUser,
-
+      author: currentUser,
       content:
         commentText.trim(),
-
       date:
         new Date().toLocaleString(
           "vi-VN"
@@ -364,12 +354,9 @@ function ApprovalDetailPage() {
     )
 
     const newComment = {
-      author:
-        currentUser,
-
+      author: currentUser,
       content:
         `Đã ủy quyền ký cho ${selectedDelegate}.`,
-
       date:
         new Date().toLocaleString(
           "vi-VN"
@@ -395,9 +382,22 @@ function ApprovalDetailPage() {
       return
     }
 
-    saveStatus(
-      "Đã thu hồi"
-    )
+    saveStatus("Đã thu hồi")
+
+    const newComment = {
+      author: currentUser,
+      content:
+        "Đã thu hồi hồ sơ trình ký.",
+      date:
+        new Date().toLocaleString(
+          "vi-VN"
+        ),
+    }
+
+    saveComments([
+      ...comments,
+      newComment,
+    ])
   }
 
   const handleDownload = () => {
@@ -405,13 +405,12 @@ function ApprovalDetailPage() {
       window.alert(
         "File mẫu hoặc hồ sơ cũ chưa có dữ liệu tải xuống. Hãy tạo một hồ sơ trình ký mới để test chức năng này."
       )
+
       return
     }
 
     const link =
-      document.createElement(
-        "a"
-      )
+      document.createElement("a")
 
     link.href =
       approval.fileData
@@ -433,24 +432,20 @@ function ApprovalDetailPage() {
 
   const getStatusClass = () => {
     if (
-      status ===
-      "Hoàn tất"
+      status === "Hoàn tất"
     ) {
       return "status processing"
     }
 
     if (
-      status ===
-      "Chờ ký"
+      status === "Chờ ký"
     ) {
       return "status waiting"
     }
 
     if (
-      status ===
-        "Từ chối" ||
-      status ===
-        "Đã thu hồi"
+      status === "Từ chối" ||
+      status === "Đã thu hồi"
     ) {
       return "status rejected"
     }
@@ -461,20 +456,43 @@ function ApprovalDetailPage() {
   const signature =
     signatures[id]
 
+  const signer =
+    delegate ||
+    approval.approver
+
   const canWithdraw =
-    approval.creator ===
-      currentUser &&
+    currentUser ===
+      approval.creator &&
     status !== "Hoàn tất" &&
     status !== "Từ chối" &&
     status !== "Đã thu hồi"
+
+  const canApprove =
+    status ===
+      "Chờ phê duyệt" &&
+    currentUser ===
+      approval.approver
+
+  const canReject =
+    status ===
+      "Chờ phê duyệt" &&
+    currentUser ===
+      approval.approver
+
+  const canDelegate =
+    status === "Chờ ký" &&
+    currentUser ===
+      approval.approver
+
+  const canSign =
+    status === "Chờ ký" &&
+    currentUser === signer
 
   return (
     <div>
       <button
         onClick={() =>
-          navigate(
-            "/approval"
-          )
+          navigate("/approval")
         }
       >
         ← Quay lại
@@ -518,67 +536,125 @@ function ApprovalDetailPage() {
             </button>
           )}
 
-          {status ===
-            "Chờ phê duyệt" && (
-            <>
-              <button
-                className="accept-button"
-                onClick={
-                  handleApprove
-                }
-              >
-                Phê duyệt
-              </button>
-
-              <button
-                className="reject-button"
-                onClick={() =>
-                  setShowRejectForm(
-                    true
-                  )
-                }
-              >
-                Từ chối
-              </button>
-            </>
+          {canApprove && (
+            <button
+              className="accept-button"
+              onClick={
+                handleApprove
+              }
+            >
+              Phê duyệt
+            </button>
           )}
 
-          {status ===
-            "Chờ ký" && (
-            <>
-              <button
-                className="secondary-button"
-                onClick={() =>
-                  setShowDelegateForm(
-                    true
-                  )
-                }
-              >
-                Ủy quyền ký
-              </button>
+          {canReject && (
+            <button
+              className="reject-button"
+              onClick={() =>
+                setShowRejectForm(
+                  true
+                )
+              }
+            >
+              Từ chối
+            </button>
+          )}
 
-              <button
-                className="primary-button"
-                onClick={() =>
-                  navigate(
-                    `/approval/${id}/sign`
-                  )
-                }
-              >
-                Ký tài liệu
-              </button>
-            </>
+          {canDelegate && (
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setShowDelegateForm(
+                  true
+                )
+              }
+            >
+              Ủy quyền ký
+            </button>
+          )}
+
+          {canSign && (
+            <button
+              className="primary-button"
+              onClick={() =>
+                navigate(
+                  `/approval/${id}/sign`
+                )
+              }
+            >
+              Ký tài liệu
+            </button>
           )}
         </div>
       </div>
 
+      <div className="detail-card">
+        <h2>
+          Người dùng mô phỏng
+        </h2>
+
+        <p>
+          Chọn người đang thao tác để
+          kiểm thử đúng vai trò trong
+          prototype.
+        </p>
+
+        <div className="form-group">
+          <label>
+            Người đang thao tác
+          </label>
+
+          <select
+            value={currentUser}
+            onChange={
+              handleChangePrototypeUser
+            }
+          >
+            {prototypeUsers.map(
+              (user) => (
+                <option
+                  key={user}
+                  value={user}
+                >
+                  {user}
+                </option>
+              )
+            )}
+          </select>
+        </div>
+      </div>
+
+      {status ===
+        "Chờ phê duyệt" &&
+        !canApprove && (
+          <div className="settings-note">
+            Hồ sơ đang chờ{" "}
+            <strong>
+              {approval.approver}
+            </strong>{" "}
+            phê duyệt.
+          </div>
+        )}
+
+      {status ===
+        "Chờ ký" &&
+        !canSign && (
+          <div className="settings-note">
+            Hồ sơ đang chờ{" "}
+            <strong>
+              {signer}
+            </strong>{" "}
+            ký.
+          </div>
+        )}
+
       {status ===
         "Đã thu hồi" && (
-        <div className="reject-message">
-          Hồ sơ trình ký này đã được
-          người khởi tạo thu hồi.
-        </div>
-      )}
+          <div className="reject-message">
+            Hồ sơ trình ký này đã được
+            người khởi tạo thu hồi.
+          </div>
+        )}
 
       {showCommentForm && (
         <div className="detail-card">
@@ -594,9 +670,7 @@ function ApprovalDetailPage() {
             <textarea
               rows="4"
               placeholder="Nhập ý kiến..."
-              value={
-                commentText
-              }
+              value={commentText}
               onChange={(e) =>
                 setCommentText(
                   e.target.value
@@ -637,15 +711,13 @@ function ApprovalDetailPage() {
 
           <div className="form-group">
             <label>
-              Lý do từ chối
+              Lý do từ chối *
             </label>
 
             <textarea
               rows="4"
               placeholder="Nhập lý do từ chối..."
-              value={
-                rejectReason
-              }
+              value={rejectReason}
               onChange={(e) =>
                 setRejectReason(
                   e.target.value
@@ -703,17 +775,22 @@ function ApprovalDetailPage() {
                 Chọn người được ủy quyền
               </option>
 
-              <option value="Trần Thị B">
-                Trần Thị B
-              </option>
-
-              <option value="Lê Văn C">
-                Lê Văn C
-              </option>
-
-              <option value="Phạm Văn D">
-                Phạm Văn D
-              </option>
+              {prototypeUsers
+                .filter(
+                  (user) =>
+                    user !==
+                    currentUser
+                )
+                .map(
+                  (user) => (
+                    <option
+                      key={user}
+                      value={user}
+                    >
+                      {user}
+                    </option>
+                  )
+                )}
             </select>
           </div>
 
@@ -801,6 +878,17 @@ function ApprovalDetailPage() {
 
             <p>
               {approval.approver ||
+                "Chưa xác định"}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Người ký hiện tại
+            </span>
+
+            <p>
+              {signer ||
                 "Chưa xác định"}
             </p>
           </div>
@@ -914,8 +1002,7 @@ function ApprovalDetailPage() {
           Ý kiến xử lý
         </h2>
 
-        {comments.length ===
-        0 ? (
+        {comments.length === 0 ? (
           <p>
             Chưa có ý kiến xử lý.
           </p>
@@ -926,11 +1013,9 @@ function ApprovalDetailPage() {
                 <th>
                   Người gửi
                 </th>
-
                 <th>
                   Nội dung
                 </th>
-
                 <th>
                   Thời gian
                 </th>
@@ -967,6 +1052,20 @@ function ApprovalDetailPage() {
             </tbody>
           </table>
         )}
+      </div>
+
+      <div className="settings-note">
+        <strong>
+          Ghi chú prototype
+        </strong>
+
+        <p>
+          Người dùng mô phỏng chỉ phục vụ
+          kiểm thử luồng nghiệp vụ khi chưa
+          có hệ thống đăng nhập thực tế.
+          Việc phân quyền chi tiết cần được
+          xác nhận trong requirement.
+        </p>
       </div>
     </div>
   )

@@ -8,6 +8,21 @@ function ApprovalSignPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
+  const prototypeUsers = [
+    "Nguyễn Văn A",
+    "Trần Thị B",
+    "Lê Văn C",
+    "Phạm Văn D",
+  ]
+
+  const savedPrototypeUser =
+    localStorage.getItem(
+      "hlcPrototypeUser"
+    ) || "Nguyễn Văn A"
+
+  const [currentUser, setCurrentUser] =
+    useState(savedPrototypeUser)
+
   const defaultSignatures = [
     {
       id: "SIGN-001",
@@ -34,11 +49,16 @@ function ApprovalSignPage() {
   const defaultApprovals = [
     {
       id: "TK-0001",
-      name: "Đề nghị mua sắm thiết bị",
-      creator: "Nguyễn Văn A",
-      approver: "Trần Thị B",
-      updatedAt: "22/10/2026",
-      status: "Chờ phê duyệt",
+      name:
+        "Đề nghị mua sắm thiết bị",
+      creator:
+        "Nguyễn Văn A",
+      approver:
+        "Trần Thị B",
+      updatedAt:
+        "22/10/2026",
+      status:
+        "Chờ phê duyệt",
       fileName:
         "de-nghi-mua-sam-thiet-bi.pdf",
     },
@@ -46,10 +66,14 @@ function ApprovalSignPage() {
       id: "TK-0002",
       name:
         "Quyết định điều động nhân sự",
-      creator: "Trần Thị B",
-      approver: "Lê Văn C",
-      updatedAt: "21/10/2026",
-      status: "Chờ ký",
+      creator:
+        "Trần Thị B",
+      approver:
+        "Lê Văn C",
+      updatedAt:
+        "21/10/2026",
+      status:
+        "Chờ ký",
       fileName:
         "quyet-dinh-dieu-dong.pdf",
     },
@@ -57,10 +81,14 @@ function ApprovalSignPage() {
       id: "TK-0003",
       name:
         "Đề xuất kế hoạch đào tạo",
-      creator: "Lê Văn C",
-      approver: "Phạm Văn D",
-      updatedAt: "20/10/2026",
-      status: "Hoàn tất",
+      creator:
+        "Lê Văn C",
+      approver:
+        "Phạm Văn D",
+      updatedAt:
+        "20/10/2026",
+      status:
+        "Hoàn tất",
       fileName:
         "ke-hoach-dao-tao.pdf",
     },
@@ -102,7 +130,8 @@ function ApprovalSignPage() {
 
   const signerName =
     delegatedSigner ||
-    "Nguyễn Văn A"
+    approval?.approver ||
+    ""
 
   const [signMethod, setSignMethod] =
     useState("")
@@ -132,20 +161,44 @@ function ApprovalSignPage() {
     statusOverrides[id] ||
     approval.status
 
+  const handleChangePrototypeUser = (
+    event
+  ) => {
+    const user =
+      event.target.value
+
+    setCurrentUser(user)
+
+    localStorage.setItem(
+      "hlcPrototypeUser",
+      user
+    )
+
+    setError("")
+  }
+
   const handleSign = () => {
-    if (!signMethod) {
+    if (
+      currentStatus !== "Chờ ký"
+    ) {
       setError(
-        "Vui lòng chọn phương thức ký số."
+        "Hồ sơ hiện không ở trạng thái chờ ký."
       )
       return
     }
 
     if (
-      currentStatus !==
-      "Chờ ký"
+      currentUser !== signerName
     ) {
       setError(
-        "Hồ sơ hiện không ở trạng thái chờ ký."
+        `Hồ sơ hiện đang chờ ${signerName} ký.`
+      )
+      return
+    }
+
+    if (!signMethod) {
+      setError(
+        "Vui lòng chọn phương thức ký số."
       )
       return
     }
@@ -175,7 +228,7 @@ function ApprovalSignPage() {
       ) || {}
 
     signatures[id] = {
-      signer: signerName,
+      signer: currentUser,
       method: signMethod,
       signedAt:
         new Date().toLocaleString(
@@ -203,7 +256,8 @@ function ApprovalSignPage() {
     savedComments[id] = [
       ...oldComments,
       {
-        author: signerName,
+        author:
+          currentUser,
 
         content:
           `Đã ký tài liệu bằng ${signMethod}.`,
@@ -227,6 +281,12 @@ function ApprovalSignPage() {
     )
   }
 
+  const canSign =
+    currentStatus ===
+      "Chờ ký" &&
+    currentUser ===
+      signerName
+
   return (
     <div>
       <button
@@ -245,8 +305,39 @@ function ApprovalSignPage() {
         </h1>
 
         <p>
-          Mã hồ sơ: {approval.id}
+          Mã hồ sơ:{" "}
+          {approval.id}
         </p>
+      </div>
+
+      <div className="detail-card">
+        <h2>
+          Người dùng mô phỏng
+        </h2>
+
+        <div className="form-group">
+          <label>
+            Người đang thao tác
+          </label>
+
+          <select
+            value={currentUser}
+            onChange={
+              handleChangePrototypeUser
+            }
+          >
+            {prototypeUsers.map(
+              (user) => (
+                <option
+                  key={user}
+                  value={user}
+                >
+                  {user}
+                </option>
+              )
+            )}
+          </select>
+        </div>
       </div>
 
       {delegatedSigner && (
@@ -254,6 +345,20 @@ function ApprovalSignPage() {
           Hồ sơ đã được ủy quyền ký cho{" "}
           <strong>
             {delegatedSigner}
+          </strong>
+          .
+        </div>
+      )}
+
+      {!canSign && (
+        <div className="settings-note">
+          Hồ sơ đang chờ{" "}
+          <strong>
+            {signerName}
+          </strong>{" "}
+          ký. Người dùng hiện tại là{" "}
+          <strong>
+            {currentUser}
           </strong>
           .
         </div>
@@ -305,7 +410,8 @@ function ApprovalSignPage() {
 
             <p>
               <strong>
-                {signerName}
+                {signerName ||
+                  "Chưa xác định"}
               </strong>
             </p>
           </div>
@@ -337,6 +443,7 @@ function ApprovalSignPage() {
 
               setError("")
             }}
+            disabled={!canSign}
           >
             <option value="">
               Chọn phương thức ký
@@ -356,10 +463,11 @@ function ApprovalSignPage() {
 
           {signatureMethods.length ===
             0 && (
-            <small>
-              Chưa có chữ ký số được cấu hình.
-            </small>
-          )}
+              <small>
+                Chưa có chữ ký số
+                được cấu hình.
+              </small>
+            )}
         </div>
 
         <div className="form-actions">
@@ -378,8 +486,9 @@ function ApprovalSignPage() {
             className="primary-button"
             onClick={handleSign}
             disabled={
+              !canSign ||
               signatureMethods.length ===
-              0
+                0
             }
           >
             Ký tài liệu
@@ -393,9 +502,10 @@ function ApprovalSignPage() {
         </strong>
 
         <p>
-          Thao tác ký hiện chỉ mô phỏng
+          Việc ký số hiện chỉ mô phỏng
           trên giao diện và localStorage,
-          chưa gọi API thực tế tới VNPT CA.
+          chưa gọi API thực tế tới
+          VNPT CA SmartCA hoặc USB Token.
         </p>
       </div>
     </div>

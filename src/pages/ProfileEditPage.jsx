@@ -37,22 +37,36 @@ function ProfileEditPage() {
       !phone.trim()
     ) {
       setError(
-        "Vui lòng nhập đầy đủ thông tin."
+        "Vui lòng nhập đầy đủ họ tên, email và số điện thoại."
       )
-
       return
     }
 
     const updatedProfile = {
       ...savedProfile,
-      fullName,
-      email,
-      phone,
+      fullName:
+        fullName.trim(),
+      email:
+        email.trim(),
+      phone:
+        phone.trim(),
     }
 
     localStorage.setItem(
       "hlcProfile",
-      JSON.stringify(updatedProfile)
+      JSON.stringify(
+        updatedProfile
+      )
+    )
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "hlcProfileUpdated",
+        {
+          detail:
+            updatedProfile,
+        }
+      )
     )
 
     navigate("/profile")
@@ -69,10 +83,13 @@ function ProfileEditPage() {
       </button>
 
       <div className="detail-header">
-        <h1>Sửa thông tin cá nhân</h1>
+        <h1>
+          Sửa thông tin cá nhân
+        </h1>
 
         <p>
-          Cập nhật thông tin cá nhân của bạn.
+          Cập nhật thông tin cá nhân
+          trên HLC E-Office.
         </p>
       </div>
 
@@ -85,7 +102,9 @@ function ProfileEditPage() {
 
         <div className="upload-form">
           <div className="form-group">
-            <label>Họ và tên *</label>
+            <label>
+              Họ và tên *
+            </label>
 
             <input
               type="text"
@@ -141,7 +160,9 @@ function ProfileEditPage() {
           </div>
 
           <div className="form-group">
-            <label>Email *</label>
+            <label>
+              Email *
+            </label>
 
             <input
               type="email"
@@ -174,7 +195,9 @@ function ProfileEditPage() {
             <button
               className="secondary-button"
               onClick={() =>
-                navigate("/profile")
+                navigate(
+                  "/profile"
+                )
               }
             >
               Hủy
@@ -182,12 +205,28 @@ function ProfileEditPage() {
 
             <button
               className="primary-button"
-              onClick={handleSave}
+              onClick={
+                handleSave
+              }
             >
               Lưu thay đổi
             </button>
           </div>
         </div>
+      </div>
+
+      <div className="settings-note">
+        <strong>
+          Lưu ý về prototype
+        </strong>
+
+        <p>
+          Việc trường nào được phép sửa
+          hoặc chỉ được xem hiện chưa được
+          xác nhận chi tiết trong requirement.
+          Màn hình này đang mô phỏng việc sửa
+          họ tên, email và số điện thoại.
+        </p>
       </div>
     </div>
   )

@@ -119,6 +119,13 @@ function ServiceRequestDetailPage() {
       )
     ) || {}
 
+  const storedComments =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcServiceRequestComments"
+      )
+    ) || {}
+
   const allRequests = [
     ...defaultRequests,
     ...savedRequests,
@@ -200,6 +207,18 @@ function ServiceRequestDetailPage() {
   )
 
   const [
+    comments,
+    setComments,
+  ] = useState(
+    storedComments[id] || []
+  )
+
+  const [
+    commentText,
+    setCommentText,
+  ] = useState("")
+
+  const [
     showAssignForm,
     setShowAssignForm,
   ] = useState(false)
@@ -227,6 +246,11 @@ function ServiceRequestDetailPage() {
   const [
     showSupplementForm,
     setShowSupplementForm,
+  ] = useState(false)
+
+  const [
+    showCommentForm,
+    setShowCommentForm,
   ] = useState(false)
 
   if (!request) {
@@ -293,6 +317,29 @@ function ServiceRequestDetailPage() {
     )
   }
 
+  const saveComments = (
+    newComments
+  ) => {
+    const current =
+      JSON.parse(
+        localStorage.getItem(
+          "hlcServiceRequestComments"
+        )
+      ) || {}
+
+    current[id] =
+      newComments
+
+    localStorage.setItem(
+      "hlcServiceRequestComments",
+      JSON.stringify(current)
+    )
+
+    setComments(
+      newComments
+    )
+  }
+
   const handleAccept = () => {
     saveStatus(
       "Chờ phân công"
@@ -308,8 +355,10 @@ function ServiceRequestDetailPage() {
 
     const newItem = {
       type: "request",
+
       content:
         supplementReason.trim(),
+
       date:
         new Date().toLocaleString(
           "vi-VN"
@@ -326,6 +375,7 @@ function ServiceRequestDetailPage() {
     )
 
     setSupplementReason("")
+
     setShowRequestSupplementForm(
       false
     )
@@ -340,8 +390,10 @@ function ServiceRequestDetailPage() {
 
     const newItem = {
       type: "response",
+
       content:
         supplementContent.trim(),
+
       date:
         new Date().toLocaleString(
           "vi-VN"
@@ -358,6 +410,7 @@ function ServiceRequestDetailPage() {
     )
 
     setSupplementContent("")
+
     setShowSupplementForm(
       false
     )
@@ -428,6 +481,36 @@ function ServiceRequestDetailPage() {
     )
 
     setShowAssignForm(false)
+  }
+
+  const handleAddComment = () => {
+    if (
+      !commentText.trim()
+    ) {
+      return
+    }
+
+    const newComment = {
+      author:
+        handler ||
+        "Nguyễn Văn A",
+
+      content:
+        commentText.trim(),
+
+      date:
+        new Date().toLocaleString(
+          "vi-VN"
+        ),
+    }
+
+    saveComments([
+      ...comments,
+      newComment,
+    ])
+
+    setCommentText("")
+    setShowCommentForm(false)
   }
 
   const handleSubmitResult = () => {
@@ -669,16 +752,29 @@ function ServiceRequestDetailPage() {
 
           {status ===
             "Đang xử lý" && (
-            <button
-              className="primary-button"
-              onClick={() =>
-                setShowResultForm(
-                  true
-                )
-              }
-            >
-              Phản hồi kết quả
-            </button>
+            <>
+              <button
+                className="secondary-button"
+                onClick={() =>
+                  setShowCommentForm(
+                    true
+                  )
+                }
+              >
+                Thêm ý kiến
+              </button>
+
+              <button
+                className="primary-button"
+                onClick={() =>
+                  setShowResultForm(
+                    true
+                  )
+                }
+              >
+                Phản hồi kết quả
+              </button>
+            </>
           )}
 
           {status ===
@@ -924,6 +1020,57 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
+      {showCommentForm && (
+        <div className="detail-card">
+          <h2>
+            Thêm ý kiến xử lý
+          </h2>
+
+          <div className="form-group">
+            <label>
+              Nội dung ý kiến *
+            </label>
+
+            <textarea
+              rows="4"
+              placeholder="Nhập ý kiến trong quá trình xử lý..."
+              value={
+                commentText
+              }
+              onChange={(e) =>
+                setCommentText(
+                  e.target.value
+                )
+              }
+            />
+          </div>
+
+          <div className="form-actions">
+            <button
+              className="secondary-button"
+              onClick={() => {
+                setShowCommentForm(
+                  false
+                )
+
+                setCommentText("")
+              }}
+            >
+              Hủy
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={
+                handleAddComment
+              }
+            >
+              Gửi ý kiến
+            </button>
+          </div>
+        </div>
+      )}
+
       {showResultForm && (
         <div className="detail-card">
           <h2>
@@ -1162,6 +1309,59 @@ function ServiceRequestDetailPage() {
 
                     <td>
                       {item.date}
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {comments.length > 0 && (
+        <div className="detail-card">
+          <h2>
+            Ý kiến xử lý
+          </h2>
+
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  Người gửi
+                </th>
+                <th>
+                  Nội dung
+                </th>
+                <th>
+                  Thời gian
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {comments.map(
+                (
+                  comment,
+                  index
+                ) => (
+                  <tr key={index}>
+                    <td>
+                      {
+                        comment.author
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        comment.content
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        comment.date
+                      }
                     </td>
                   </tr>
                 )

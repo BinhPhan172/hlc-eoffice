@@ -9,6 +9,11 @@ import {
   useNavigate,
 } from "react-router-dom"
 
+import {
+  useEffect,
+  useState,
+} from "react"
+
 import DashboardPage from "./pages/DashboardPage"
 
 import DocumentsPage from "./pages/DocumentsPage"
@@ -44,6 +49,53 @@ import SettingsProcessingRulesPage from "./pages/SettingsProcessingRulesPage"
 function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
+
+  const defaultProfile = {
+    fullName: "Nguyễn Văn A",
+  }
+
+  const getStoredProfile = () => {
+    return (
+      JSON.parse(
+        localStorage.getItem(
+          "hlcProfile"
+        )
+      ) || defaultProfile
+    )
+  }
+
+  const [profile, setProfile] =
+    useState(
+      getStoredProfile()
+    )
+
+  useEffect(() => {
+    const handleProfileUpdated = (
+      event
+    ) => {
+      if (event.detail) {
+        setProfile(
+          event.detail
+        )
+      } else {
+        setProfile(
+          getStoredProfile()
+        )
+      }
+    }
+
+    window.addEventListener(
+      "hlcProfileUpdated",
+      handleProfileUpdated
+    )
+
+    return () => {
+      window.removeEventListener(
+        "hlcProfileUpdated",
+        handleProfileUpdated
+      )
+    }
+  }, [])
 
   const titles = {
     "/":
@@ -171,18 +223,6 @@ function Layout() {
       ] || "HLC E-Office"
     )
   }
-
-  const defaultProfile = {
-    fullName:
-      "Nguyễn Văn A",
-  }
-
-  const profile =
-    JSON.parse(
-      localStorage.getItem(
-        "hlcProfile"
-      )
-    ) || defaultProfile
 
   return (
     <div className="app">
