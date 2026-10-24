@@ -47,24 +47,22 @@ import SettingsPrioritySlaPage from "./pages/SettingsPrioritySlaPage"
 import SettingsProcessingRulesPage from "./pages/SettingsProcessingRulesPage"
 
 function Layout() {
-  const location =
-    useLocation()
-
-  const navigate =
-    useNavigate()
+  const location = useLocation()
+  const navigate = useNavigate()
 
   const defaultProfile = {
-    fullName:
-      "Nguyễn Văn A",
+    fullName: "Nguyễn Văn A",
   }
 
-  const getStoredProfile =
-    () =>
+  const getStoredProfile = () => {
+    return (
       JSON.parse(
         localStorage.getItem(
           "hlcProfile"
         )
       ) || defaultProfile
+    )
+  }
 
   const [
     profile,
@@ -73,10 +71,7 @@ function Layout() {
     getStoredProfile()
   )
 
-  // =========================
-  // RESET SCROLL KHI ĐỔI ROUTE
-  // =========================
-
+  // Reset phần nội dung về đầu khi đổi trang
   useEffect(() => {
     const content =
       document.querySelector(
@@ -87,21 +82,14 @@ function Layout() {
       content.scrollTop = 0
       content.scrollLeft = 0
     }
-  }, [
-    location.pathname,
-  ])
+  }, [location.pathname])
 
-  // =========================
-  // PROFILE
-  // =========================
-
+  // Cập nhật tên profile
   useEffect(() => {
     const handleProfileUpdated = (
       event
     ) => {
-      if (
-        event.detail
-      ) {
+      if (event.detail) {
         setProfile(
           event.detail
         )
@@ -126,161 +114,132 @@ function Layout() {
   }, [])
 
   const titles = {
-    "/":
-      "Tổng quan",
-
+    "/": "Tổng quan",
     "/documents":
       "Tài liệu",
-
     "/approval":
       "Trình ký",
-
     "/service-requests":
       "Yêu cầu dịch vụ",
-
     "/notifications":
       "Thông báo",
-
     "/profile":
       "Thông tin cá nhân",
-
     "/profile/edit":
       "Sửa thông tin cá nhân",
-
     "/change-password":
       "Đổi mật khẩu",
-
     "/settings":
       "Thiết lập hệ thống",
-
     "/settings/document-info":
       "Cấu hình thông tin tài liệu",
-
     "/settings/approval-info":
       "Cấu hình thông tin trình ký",
-
     "/settings/digital-signatures":
       "Cấu hình danh sách chữ ký số",
-
     "/settings/request-categories":
       "Cấu hình danh mục yêu cầu",
-
     "/settings/request-routing":
       "Cấu hình điều phối yêu cầu",
-
     "/settings/priority-sla":
       "Cấu hình mức ưu tiên / SLA",
-
     "/settings/processing-rules":
       "Cấu hình quy tắc xử lý",
   }
 
-  const getPageTitle =
-    () => {
-      if (
-        location.pathname ===
-        "/documents/upload"
-      ) {
-        return "Tải lên tài liệu"
-      }
-
-      if (
-        location.pathname.endsWith(
-          "/version"
-        )
-      ) {
-        return "Cập nhật phiên bản"
-      }
-
-      if (
-        location.pathname.endsWith(
-          "/share"
-        )
-      ) {
-        return "Chia sẻ tài liệu"
-      }
-
-      if (
-        location.pathname.startsWith(
-          "/documents/"
-        )
-      ) {
-        return "Chi tiết tài liệu"
-      }
-
-      if (
-        location.pathname ===
-        "/approval/create"
-      ) {
-        return "Khởi tạo trình ký"
-      }
-
-      if (
-        location.pathname.endsWith(
-          "/sign"
-        )
-      ) {
-        return "Ký tài liệu"
-      }
-
-      if (
-        location.pathname.startsWith(
-          "/approval/"
-        )
-      ) {
-        return "Chi tiết trình ký"
-      }
-
-      if (
-        location.pathname ===
-        "/service-requests/create"
-      ) {
-        return "Tạo yêu cầu dịch vụ"
-      }
-
-      if (
-        location.pathname.startsWith(
-          "/service-requests/"
-        )
-      ) {
-        return "Chi tiết yêu cầu"
-      }
-
-      return (
-        titles[
-          location.pathname
-        ] ||
-        "HLC E-Office"
-      )
+  const getPageTitle = () => {
+    if (
+      location.pathname ===
+      "/documents/upload"
+    ) {
+      return "Tải lên tài liệu"
     }
+
+    if (
+      location.pathname.endsWith(
+        "/version"
+      )
+    ) {
+      return "Cập nhật phiên bản"
+    }
+
+    if (
+      location.pathname.endsWith(
+        "/share"
+      )
+    ) {
+      return "Chia sẻ tài liệu"
+    }
+
+    if (
+      location.pathname.startsWith(
+        "/documents/"
+      )
+    ) {
+      return "Chi tiết tài liệu"
+    }
+
+    if (
+      location.pathname ===
+      "/approval/create"
+    ) {
+      return "Khởi tạo trình ký"
+    }
+
+    if (
+      location.pathname.endsWith(
+        "/sign"
+      )
+    ) {
+      return "Ký tài liệu"
+    }
+
+    if (
+      location.pathname.startsWith(
+        "/approval/"
+      )
+    ) {
+      return "Chi tiết trình ký"
+    }
+
+    if (
+      location.pathname ===
+      "/service-requests/create"
+    ) {
+      return "Tạo yêu cầu dịch vụ"
+    }
+
+    if (
+      location.pathname.startsWith(
+        "/service-requests/"
+      )
+    ) {
+      return "Chi tiết yêu cầu"
+    }
+
+    return (
+      titles[
+        location.pathname
+      ] || "HLC E-Office"
+    )
+  }
 
   return (
     <div
       className="app"
       style={{
-        height:
-          "100vh",
-
-        minHeight:
-          "100vh",
-
-        overflow:
-          "hidden",
+        height: "100vh",
+        minHeight: "100vh",
+        overflow: "hidden",
       }}
     >
       <aside
         className="sidebar"
         style={{
-          height:
-            "100vh",
-
+          height: "100vh",
           flexShrink: 0,
-
-          overflowY:
-            "auto",
-
-          boxSizing:
-            "border-box",
+          overflowY: "auto",
+          boxSizing: "border-box",
         }}
       >
         <div className="logo">
@@ -317,13 +276,9 @@ function Layout() {
       <div
         className="main"
         style={{
-          height:
-            "100vh",
-
+          height: "100vh",
           minHeight: 0,
-
-          overflow:
-            "hidden",
+          overflow: "hidden",
         }}
       >
         <header
@@ -344,13 +299,10 @@ function Layout() {
               )
             }
             style={{
-              cursor:
-                "pointer",
+              cursor: "pointer",
             }}
           >
-            {
-              profile.fullName
-            }
+            {profile.fullName}
           </div>
         </header>
 
@@ -358,14 +310,9 @@ function Layout() {
           className="content"
           style={{
             flex: 1,
-
             minHeight: 0,
-
-            overflowY:
-              "auto",
-
-            overflowX:
-              "hidden",
+            overflowY: "auto",
+            overflowX: "hidden",
           }}
         >
           <Routes>

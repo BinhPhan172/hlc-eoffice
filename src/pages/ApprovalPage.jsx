@@ -7,38 +7,27 @@ function ApprovalPage() {
   const defaultApprovals = [
     {
       id: "TK-0001",
-      name:
-        "Đề nghị mua sắm thiết bị",
-      creator:
-        "Nguyễn Văn A",
-      updatedAt:
-        "22/10/2026",
-      status:
-        "Chờ phê duyệt",
+      name: "Đề nghị mua sắm thiết bị",
+      creator: "Nguyễn Văn A",
+      updatedAt: "22/10/2026",
+      priority: "Bình thường",
+      status: "Chờ phê duyệt",
     },
-
     {
       id: "TK-0002",
-      name:
-        "Quyết định điều động nhân sự",
-      creator:
-        "Trần Thị B",
-      updatedAt:
-        "21/10/2026",
-      status:
-        "Chờ ký",
+      name: "Quyết định điều động nhân sự",
+      creator: "Trần Thị B",
+      updatedAt: "21/10/2026",
+      priority: "Cao",
+      status: "Chờ ký",
     },
-
     {
       id: "TK-0003",
-      name:
-        "Đề xuất kế hoạch đào tạo",
-      creator:
-        "Lê Văn C",
-      updatedAt:
-        "20/10/2026",
-      status:
-        "Hoàn tất",
+      name: "Đề xuất kế hoạch đào tạo",
+      creator: "Lê Văn C",
+      updatedAt: "20/10/2026",
+      priority: "Bình thường",
+      status: "Hoàn tất",
     },
   ]
 
@@ -56,46 +45,130 @@ function ApprovalPage() {
       )
     ) || {}
 
+  const getDateValue = (
+    dateString
+  ) => {
+    if (!dateString) {
+      return 0
+    }
+
+    const [
+      day,
+      month,
+      year,
+    ] = dateString
+      .split("/")
+      .map(Number)
+
+    if (
+      !day ||
+      !month ||
+      !year
+    ) {
+      return 0
+    }
+
+    return new Date(
+      year,
+      month - 1,
+      day
+    ).getTime()
+  }
+
+  const getIdNumber = (
+    approvalId
+  ) => {
+    const match =
+      approvalId?.match(
+        /(\d+)$/
+      )
+
+    return match
+      ? Number(match[1])
+      : 0
+  }
+
   const approvals = [
     ...defaultApprovals,
     ...savedApprovals,
-  ].map((item) => ({
-    ...item,
+  ]
+    .map((item) => ({
+      ...item,
 
-    status:
-      statusOverrides[item.id] ||
-      item.status,
-  }))
+      priority:
+        item.priority ||
+        "Bình thường",
 
-  const [keyword, setKeyword] =
-    useState("")
+      status:
+        statusOverrides[
+          item.id
+        ] ||
+        item.status,
+    }))
+    .sort((a, b) => {
+      const dateA =
+        getDateValue(
+          a.updatedAt
+        )
 
-  const [status, setStatus] =
-    useState("")
+      const dateB =
+        getDateValue(
+          b.updatedAt
+        )
 
-  const filteredApprovals =
-    approvals.filter((item) => {
-      const matchKeyword =
-        item.id
-          .toLowerCase()
-          .includes(
-            keyword.toLowerCase()
-          ) ||
-        item.name
-          .toLowerCase()
-          .includes(
-            keyword.toLowerCase()
-          )
-
-      const matchStatus =
-        status === "" ||
-        item.status === status
+      if (
+        dateA !== dateB
+      ) {
+        return dateB - dateA
+      }
 
       return (
-        matchKeyword &&
-        matchStatus
+        getIdNumber(b.id) -
+        getIdNumber(a.id)
       )
     })
+
+  const [
+    keyword,
+    setKeyword,
+  ] = useState("")
+
+  const [
+    status,
+    setStatus,
+  ] = useState("")
+
+  const filteredApprovals =
+    approvals.filter(
+      (item) => {
+        const searchText =
+          keyword
+            .trim()
+            .toLowerCase()
+
+        const matchKeyword =
+          item.id
+            .toLowerCase()
+            .includes(
+              searchText
+            ) ||
+          item.name
+            .toLowerCase()
+            .includes(
+              searchText
+            )
+
+        const matchStatus =
+          status === "" ||
+          item.status ===
+            status
+
+        return (
+          matchKeyword &&
+          matchStatus
+        )
+      }
+    )
 
   const getStatusClass = (
     approvalStatus
@@ -124,6 +197,39 @@ function ApprovalPage() {
     }
 
     return "status pending"
+  }
+
+  const getPriorityStyle = (
+    itemPriority
+  ) => {
+    if (
+      itemPriority === "Khẩn"
+    ) {
+      return {
+        background: "#fef2f2",
+        color: "#b91c1c",
+        border:
+          "1px solid #fecaca",
+      }
+    }
+
+    if (
+      itemPriority === "Cao"
+    ) {
+      return {
+        background: "#fff7ed",
+        color: "#c2410c",
+        border:
+          "1px solid #fed7aa",
+      }
+    }
+
+    return {
+      background: "#f3f4f6",
+      color: "#4b5563",
+      border:
+        "1px solid #e5e7eb",
+    }
   }
 
   return (
@@ -202,15 +308,30 @@ function ApprovalPage() {
         <table>
           <thead>
             <tr>
-              <th>Mã hồ sơ</th>
-              <th>Tên hồ sơ</th>
+              <th>
+                Mã hồ sơ
+              </th>
+
+              <th>
+                Tên hồ sơ
+              </th>
+
               <th>
                 Người khởi tạo
               </th>
-              <th>Cập nhật</th>
+
+              <th>
+                Mức độ ưu tiên
+              </th>
+
+              <th>
+                Cập nhật
+              </th>
+
               <th>
                 Trạng thái
               </th>
+
               <th>
                 Thao tác
               </th>
@@ -220,21 +341,62 @@ function ApprovalPage() {
           <tbody>
             {filteredApprovals.map(
               (item) => (
-                <tr key={item.id}>
+                <tr
+                  key={
+                    item.id
+                  }
+                >
                   <td>
-                    {item.id}
+                    {
+                      item.id
+                    }
                   </td>
 
                   <td className="document-name">
-                    {item.name}
+                    {
+                      item.name
+                    }
                   </td>
 
                   <td>
-                    {item.creator}
+                    {
+                      item.creator
+                    }
                   </td>
 
                   <td>
-                    {item.updatedAt}
+                    <span
+                      style={{
+                        display:
+                          "inline-block",
+
+                        padding:
+                          "6px 10px",
+
+                        borderRadius:
+                          "999px",
+
+                        fontSize:
+                          "13px",
+
+                        fontWeight:
+                          "600",
+
+                        ...getPriorityStyle(
+                          item.priority
+                        ),
+                      }}
+                    >
+                      {
+                        item.priority
+                      }
+                    </span>
+                  </td>
+
+                  <td>
+                    {
+                      item.updatedAt
+                    }
                   </td>
 
                   <td>
@@ -243,7 +405,9 @@ function ApprovalPage() {
                         item.status
                       )}
                     >
-                      {item.status}
+                      {
+                        item.status
+                      }
                     </span>
                   </td>
 
@@ -266,7 +430,7 @@ function ApprovalPage() {
               0 && (
               <tr>
                 <td
-                  colSpan="6"
+                  colSpan="7"
                   className="empty-table"
                 >
                   Không tìm thấy hồ sơ
