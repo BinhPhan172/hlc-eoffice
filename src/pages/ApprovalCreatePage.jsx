@@ -250,7 +250,6 @@ function ApprovalCreatePage() {
     }
   }
 
-  // LOAD PDF
   useEffect(() => {
     if (
       !file ||
@@ -319,7 +318,6 @@ function ApprovalCreatePage() {
     }
   }, [file, filePreview])
 
-  // RENDER TỪNG TRANG PDF
   useEffect(() => {
     if (
       !pdfDocument ||
@@ -413,17 +411,17 @@ function ApprovalCreatePage() {
               .render({
                 canvasContext:
                   context,
-
                 viewport,
-
                 transform,
               })
               .promise
           } catch (err) {
-            console.error(
-              `Không thể render trang ${pageNumber}`,
-              err
-            )
+            if (!cancelled) {
+              console.error(
+                `Không thể render trang ${pageNumber}`,
+                err
+              )
+            }
           }
         }
       }
@@ -569,7 +567,7 @@ function ApprovalCreatePage() {
       }
     }
 
-  const handleCreate = async () => {
+  const handleCreate = () => {
     if (!name.trim()) {
       setError(
         "Vui lòng nhập tên hồ sơ."
@@ -640,13 +638,16 @@ function ApprovalCreatePage() {
         approvalFlow: [
           {
             step: 1,
-            type: "Phê duyệt",
-            user: approver,
+            type:
+              "Phê duyệt",
+            user:
+              approver,
           },
           {
             step: 2,
             type: "Ký",
-            user: signer,
+            user:
+              signer,
           },
         ],
 
@@ -701,14 +702,19 @@ function ApprovalCreatePage() {
         ])
       )
 
-      navigate(
+      // QUAN TRỌNG:
+      // tải lại trực tiếp trang chi tiết
+      // để tránh màn trắng sau khi tạo.
+      window.location.assign(
         `/approval/${newId}`
       )
-    } catch {
+    } catch (err) {
+      console.error(err)
+
       setError(
         "Không thể tạo hồ sơ trình ký."
       )
-    } finally {
+
       setSaving(false)
     }
   }
@@ -766,8 +772,7 @@ function ApprovalCreatePage() {
           background:
             "rgba(219, 234, 254, 0.92)",
 
-          borderRadius:
-            "8px",
+          borderRadius: "8px",
 
           display: "flex",
 
@@ -795,11 +800,9 @@ function ApprovalCreatePage() {
               ? "grabbing"
               : "grab",
 
-          userSelect:
-            "none",
+          userSelect: "none",
 
-          touchAction:
-            "none",
+          touchAction: "none",
 
           zIndex: 10,
 
@@ -811,11 +814,7 @@ function ApprovalCreatePage() {
           ✍️ Vùng ký
         </span>
 
-        <small
-          style={{
-            marginTop: "4px",
-          }}
-        >
+        <small>
           Trang {pageNumber}
         </small>
 
@@ -865,10 +864,13 @@ function ApprovalCreatePage() {
             zIndex: 20,
 
             display: "flex",
+
             justifyContent:
               "space-between",
+
             alignItems:
               "center",
+
             gap: "12px",
 
             padding:
@@ -968,7 +970,8 @@ function ApprovalCreatePage() {
                       position:
                         "relative",
 
-                      width: "100%",
+                      width:
+                        "100%",
 
                       maxWidth:
                         "760px",
@@ -1041,12 +1044,9 @@ function ApprovalCreatePage() {
       >
         <div
           style={{
-            textAlign:
-              "center",
-            marginBottom:
-              "8px",
-            fontWeight:
-              "600",
+            textAlign: "center",
+            marginBottom: "8px",
+            fontWeight: "600",
           }}
         >
           Trang 1 / 1
@@ -1064,16 +1064,11 @@ function ApprovalCreatePage() {
             )
           }
           style={{
-            position:
-              "relative",
-            maxWidth:
-              "760px",
-            margin:
-              "0 auto",
-            background:
-              "#ffffff",
-            cursor:
-              "crosshair",
+            position: "relative",
+            maxWidth: "760px",
+            margin: "0 auto",
+            background: "#ffffff",
+            cursor: "crosshair",
           }}
         >
           <img
@@ -1085,9 +1080,7 @@ function ApprovalCreatePage() {
             }}
           />
 
-          {renderSignatureBox(
-            1
-          )}
+          {renderSignatureBox(1)}
         </div>
       </div>
     )
@@ -1328,13 +1321,14 @@ function ApprovalCreatePage() {
             color: "#6b7280",
           }}
         >
-          Cuộn tới trang muốn ký rồi
+          Cuộn tới trang muốn ký rồi{" "}
           <strong>
-            {" "}
             bấm trực tiếp vào vị trí cần ký
           </strong>
-          . Sau đó có thể kéo ô
-          <strong> Vùng ký </strong>
+          . Sau đó có thể kéo ô{" "}
+          <strong>
+            Vùng ký
+          </strong>{" "}
           để chỉnh lại vị trí.
         </p>
 
@@ -1342,16 +1336,13 @@ function ApprovalCreatePage() {
           <div
             style={{
               padding: "50px",
-              textAlign:
-                "center",
+              textAlign: "center",
               background:
                 "#f9fafb",
               border:
                 "1px dashed #d1d5db",
-              borderRadius:
-                "10px",
-              color:
-                "#6b7280",
+              borderRadius: "10px",
+              color: "#6b7280",
             }}
           >
             Hãy chọn file ở bước 1 để
@@ -1368,31 +1359,16 @@ function ApprovalCreatePage() {
         ) &&
           renderImagePreview()}
 
-        {file &&
-          file.type !==
-            "application/pdf" &&
-          !file.type.startsWith(
-            "image/"
-          ) && (
-            <div className="settings-note">
-              Định dạng file này không
-              hỗ trợ xem trước để đặt vị
-              trí ký.
-            </div>
-          )}
-
         {filePreview && (
           <div
             className="settings-note"
             style={{
-              marginTop:
-                "16px",
+              marginTop: "16px",
             }}
           >
             <strong>
               Vị trí ký:
             </strong>{" "}
-
             Trang{" "}
             {signaturePosition.page}
             {" - "}
@@ -1486,20 +1462,6 @@ function ApprovalCreatePage() {
               : "Khởi tạo trình ký"}
           </button>
         </div>
-      </div>
-
-      <div className="settings-note">
-        <strong>
-          Ghi chú prototype
-        </strong>
-
-        <p>
-          Vùng ký đang lưu theo số trang
-          và tọa độ phần trăm X/Y. Khi
-          tích hợp ký số thật, các tọa độ
-          này sẽ cần chuyển sang tọa độ
-          PDF tương ứng.
-        </p>
       </div>
     </div>
   )

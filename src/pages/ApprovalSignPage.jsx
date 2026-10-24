@@ -10,7 +10,6 @@ import {
 } from "react-router-dom"
 
 import * as pdfjsLib from "pdfjs-dist"
-
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url"
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -65,7 +64,6 @@ function ApprovalSignPage() {
       signatureMethod: "",
       signaturePosition: null,
     },
-
     {
       id: "TK-0002",
       name:
@@ -88,7 +86,6 @@ function ApprovalSignPage() {
       signatureMethod: "",
       signaturePosition: null,
     },
-
     {
       id: "TK-0003",
       name:
@@ -142,8 +139,7 @@ function ApprovalSignPage() {
 
   const approval =
     allApprovals.find(
-      (item) =>
-        item.id === id
+      (item) => item.id === id
     )
 
   const delegatedSigner =
@@ -236,8 +232,6 @@ function ApprovalSignPage() {
     return bytes
   }
 
-  // LOAD PDF
-  // Chỉ chạy lại khi FILE thật sự thay đổi.
   useEffect(() => {
     if (
       !fileData ||
@@ -318,7 +312,6 @@ function ApprovalSignPage() {
     fileType,
   ])
 
-  // RENDER CÁC TRANG PDF
   useEffect(() => {
     if (
       !pdfDocument ||
@@ -333,8 +326,7 @@ function ApprovalSignPage() {
       async () => {
         for (
           let pageNumber = 1;
-          pageNumber <=
-          numPages;
+          pageNumber <= numPages;
           pageNumber += 1
         ) {
           if (cancelled) {
@@ -420,9 +412,7 @@ function ApprovalSignPage() {
               .render({
                 canvasContext:
                   context,
-
                 viewport,
-
                 transform,
               })
               .promise
@@ -447,45 +437,6 @@ function ApprovalSignPage() {
     numPages,
   ])
 
-  // TỰ ĐI TỚI TRANG CÓ VÙNG KÝ
-  useEffect(() => {
-    if (
-      !pdfDocument ||
-      !signaturePage
-    ) {
-      return
-    }
-
-    const timer =
-      window.setTimeout(() => {
-        const targetPage =
-          pageRefs.current[
-            signaturePage
-          ]
-
-        if (targetPage) {
-          targetPage.scrollIntoView(
-            {
-              behavior:
-                "smooth",
-
-              block:
-                "center",
-            }
-          )
-        }
-      }, 500)
-
-    return () => {
-      window.clearTimeout(
-        timer
-      )
-    }
-  }, [
-    pdfDocument,
-    signaturePage,
-  ])
-
   if (!approval) {
     return (
       <div>
@@ -495,9 +446,7 @@ function ApprovalSignPage() {
 
         <button
           onClick={() =>
-            navigate(
-              "/approval"
-            )
+            navigate("/approval")
           }
         >
           ← Quay lại danh sách
@@ -534,15 +483,10 @@ function ApprovalSignPage() {
         ]
 
       if (targetPage) {
-        targetPage.scrollIntoView(
-          {
-            behavior:
-              "smooth",
-
-            block:
-              "center",
-          }
-        )
+        targetPage.scrollIntoView({
+          behavior: "smooth",
+          block: "center",
+        })
       }
     }
 
@@ -684,7 +628,10 @@ function ApprovalSignPage() {
         )
       )
 
-      navigate(
+      // QUAN TRỌNG:
+      // reload thẳng trang chi tiết
+      // để tránh màn trắng sau khi ký.
+      window.location.assign(
         `/approval/${id}`
       )
     } catch (err) {
@@ -721,8 +668,7 @@ function ApprovalSignPage() {
     return (
       <div
         style={{
-          position:
-            "absolute",
+          position: "absolute",
 
           left: `${
             signatureX ?? 50
@@ -754,8 +700,7 @@ function ApprovalSignPage() {
           color:
             "#1d4ed8",
 
-          display:
-            "flex",
+          display: "flex",
 
           flexDirection:
             "column",
@@ -782,12 +727,7 @@ function ApprovalSignPage() {
           ✍️ Vùng ký
         </span>
 
-        <small
-          style={{
-            marginTop:
-              "4px",
-          }}
-        >
+        <small>
           {signerName}
         </small>
 
@@ -803,11 +743,8 @@ function ApprovalSignPage() {
       return (
         <div
           style={{
-            padding:
-              "40px",
-
-            textAlign:
-              "center",
+            padding: "40px",
+            textAlign: "center",
           }}
         >
           Đang tải PDF...
@@ -834,91 +771,56 @@ function ApprovalSignPage() {
       <div>
         <div
           style={{
-            display:
-              "flex",
-
+            display: "flex",
             justifyContent:
               "space-between",
-
             alignItems:
               "center",
-
             gap: "12px",
-
             padding:
               "12px 14px",
-
             border:
               "1px solid #e5e7eb",
-
-            borderBottom:
-              "none",
-
-            borderRadius:
-              "8px 8px 0 0",
-
             background:
               "#ffffff",
           }}
         >
           <div>
             <strong>
-              PDF có{" "}
-              {numPages} trang
+              PDF có {numPages} trang
             </strong>
 
-            {signaturePage && (
-              <div
-                style={{
-                  fontSize:
-                    "13px",
-
-                  color:
-                    "#6b7280",
-
-                  marginTop:
-                    "3px",
-                }}
-              >
-                Vùng ký nằm ở
-                trang{" "}
-                {signaturePage}
-              </div>
-            )}
+            <div
+              style={{
+                fontSize:
+                  "13px",
+                color:
+                  "#6b7280",
+              }}
+            >
+              Vùng ký ở trang{" "}
+              {signaturePage}
+            </div>
           </div>
 
-          {signaturePage && (
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={
-                handleGoToSignature
-              }
-            >
-              Đi tới vùng ký
-            </button>
-          )}
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={
+              handleGoToSignature
+            }
+          >
+            Đi tới vùng ký
+          </button>
         </div>
 
         <div
           style={{
-            height:
-              "650px",
-
-            overflowY:
-              "auto",
-
+            height: "650px",
+            overflowY: "auto",
             background:
               "#d1d5db",
-
-            padding:
-              "24px",
-
-            border:
-              "1px solid #e5e7eb",
-
-            borderRadius:
-              "0 0 8px 8px",
+            padding: "24px",
           }}
         >
           {Array.from(
@@ -944,15 +846,10 @@ function ApprovalSignPage() {
                     style={{
                       textAlign:
                         "center",
-
                       marginBottom:
                         "8px",
-
                       fontWeight:
                         "600",
-
-                      color:
-                        "#374151",
                     }}
                   >
                     Trang{" "}
@@ -961,9 +858,7 @@ function ApprovalSignPage() {
                   </div>
 
                   <div
-                    ref={(
-                      element
-                    ) => {
+                    ref={(element) => {
                       pageRefs.current[
                         pageNumber
                       ] = element
@@ -971,19 +866,12 @@ function ApprovalSignPage() {
                     style={{
                       position:
                         "relative",
-
-                      width:
-                        "100%",
-
                       maxWidth:
                         "760px",
-
                       margin:
                         "0 auto",
-
                       background:
                         "#ffffff",
-
                       boxShadow:
                         "0 4px 16px rgba(0,0,0,0.18)",
                     }}
@@ -994,16 +882,13 @@ function ApprovalSignPage() {
                       ) => {
                         canvasRefs.current[
                           pageNumber
-                        ] =
-                          element
+                        ] = element
                       }}
                       style={{
                         display:
                           "block",
-
                         width:
                           "100%",
-
                         height:
                           "auto",
                       }}
@@ -1018,49 +903,6 @@ function ApprovalSignPage() {
             }
           )}
         </div>
-      </div>
-    )
-  }
-
-  const renderImagePreview = () => {
-    if (
-      !fileData ||
-      !fileType.startsWith(
-        "image/"
-      )
-    ) {
-      return null
-    }
-
-    return (
-      <div
-        style={{
-          maxWidth:
-            "760px",
-
-          margin:
-            "0 auto",
-
-          position:
-            "relative",
-
-          background:
-            "#ffffff",
-        }}
-      >
-        <img
-          src={fileData}
-          alt="Tài liệu trình ký"
-          style={{
-            display:
-              "block",
-
-            width:
-              "100%",
-          }}
-        />
-
-        {renderSignatureBox(1)}
       </div>
     )
   }
@@ -1130,16 +972,6 @@ function ApprovalSignPage() {
         </div>
       )}
 
-      {!canSign && (
-        <div className="settings-note">
-          Hồ sơ hiện đang chờ{" "}
-          <strong>
-            {signerName}
-          </strong>{" "}
-          ký.
-        </div>
-      )}
-
       <div className="detail-card">
         <h2>
           Thông tin ký
@@ -1158,24 +990,11 @@ function ApprovalSignPage() {
 
           <div>
             <span className="detail-label">
-              Trạng thái
-            </span>
-
-            <p>
-              {currentStatus}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
               Người ký
             </span>
 
             <p>
-              <strong>
-                {signerName ||
-                  "Chưa xác định"}
-              </strong>
+              {signerName}
             </p>
           </div>
 
@@ -1185,10 +1004,8 @@ function ApprovalSignPage() {
             </span>
 
             <p>
-              <strong>
-                {signatureMethod ||
-                  "Chưa thiết lập"}
-              </strong>
+              {signatureMethod ||
+                "Chưa thiết lập"}
             </p>
           </div>
 
@@ -1203,26 +1020,6 @@ function ApprovalSignPage() {
                 : "Chưa thiết lập"}
             </p>
           </div>
-
-          <div>
-            <span className="detail-label">
-              Vị trí
-            </span>
-
-            <p>
-              {signaturePage &&
-              signatureX !==
-                null &&
-              signatureY !==
-                null
-                ? `X ${Math.round(
-                    signatureX
-                  )}% - Y ${Math.round(
-                    signatureY
-                  )}%`
-                : "Chưa thiết lập"}
-            </p>
-          </div>
         </div>
       </div>
 
@@ -1231,21 +1028,9 @@ function ApprovalSignPage() {
           Kiểm tra vị trí ký
         </h2>
 
-        <p
-          style={{
-            color:
-              "#6b7280",
-          }}
-        >
-          Kiểm tra lại tài liệu và
-          vùng ký đã được thiết lập
-          khi khởi tạo hồ sơ.
-        </p>
-
         {!fileData && (
           <div className="settings-note">
-            Hồ sơ mẫu hoặc hồ sơ cũ
-            chưa có dữ liệu file để
+            Hồ sơ chưa có dữ liệu file để
             xem trước.
           </div>
         )}
@@ -1254,12 +1039,6 @@ function ApprovalSignPage() {
           fileType ===
             "application/pdf" &&
           renderPdfPreview()}
-
-        {fileData &&
-          fileType.startsWith(
-            "image/"
-          ) &&
-          renderImagePreview()}
       </div>
 
       <div className="detail-card">
@@ -1272,35 +1051,6 @@ function ApprovalSignPage() {
             {error}
           </div>
         )}
-
-        <div className="settings-note">
-          <strong>
-            Phương thức ký:
-          </strong>{" "}
-          {signatureMethod ||
-            "Chưa thiết lập"}
-
-          <br />
-
-          <strong>
-            Người ký:
-          </strong>{" "}
-          {signerName ||
-            "Chưa xác định"}
-
-          <br />
-
-          <strong>
-            Vị trí:
-          </strong>{" "}
-          {signaturePage
-            ? `Trang ${signaturePage}, X ${Math.round(
-                signatureX
-              )}%, Y ${Math.round(
-                signatureY
-              )}%`
-            : "Chưa thiết lập"}
-        </div>
 
         <div className="form-actions">
           <button
@@ -1340,10 +1090,8 @@ function ApprovalSignPage() {
         </strong>
 
         <p>
-          Thao tác ký hiện đang mô phỏng.
-          Prototype chưa gọi API ký số
-          thực tế tới VNPT CA SmartCA
-          hoặc thiết bị USB Token.
+          Thao tác ký hiện đang mô phỏng,
+          chưa gọi API ký số thực tế.
         </p>
       </div>
     </div>
