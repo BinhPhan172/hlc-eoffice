@@ -40,79 +40,116 @@ function ServiceRequestDetailPage() {
   )
 
   // =========================
-  // DỮ LIỆU YÊU CẦU
+  // DỮ LIỆU MẪU
   // =========================
 
   const defaultRequests = [
     {
       id: "SR-0001",
+
       title:
         "Cấp quyền sử dụng phần mềm",
-      category: "CNTT",
+
+      category:
+        "CNTT",
+
       requester:
         "Nguyễn Văn A",
+
       description:
         "Yêu cầu cấp quyền sử dụng phần mềm phục vụ công việc.",
+
       updatedAt:
         "22/10/2026",
+
       status:
         "Chờ tiếp nhận",
 
-      // Chưa tiếp nhận nên chưa có người xử lý
-      handler: "",
+      handlerName: "",
+
+      handlerDepartment: "",
 
       fileName: "",
+
       fileSize: "",
+
       fileData: "",
     },
 
     {
       id: "SR-0002",
+
       title:
         "Hỗ trợ sửa máy in",
-      category: "CNTT",
+
+      category:
+        "CNTT",
+
       requester:
         "Trần Thị B",
+
       description:
         "Máy in tại phòng làm việc không thể in tài liệu.",
+
       updatedAt:
         "21/10/2026",
+
       status:
         "Đang xử lý",
 
       // Dữ liệu mẫu prototype
-      handler:
+      handlerName:
+        "Nguyễn Văn A",
+
+      handlerDepartment:
         "Phòng CNTT",
 
       fileName: "",
+
       fileSize: "",
+
       fileData: "",
     },
 
     {
       id: "SR-0003",
+
       title:
         "Yêu cầu cấp văn phòng phẩm",
+
       category:
         "Hành chính",
+
       requester:
         "Lê Văn C",
+
       description:
         "Yêu cầu bổ sung văn phòng phẩm phục vụ công việc.",
+
       updatedAt:
         "20/10/2026",
+
       status:
         "Hoàn tất",
 
       // Dữ liệu mẫu prototype
-      handler:
+      handlerName:
+        "Phạm Văn D",
+
+      handlerDepartment:
         "Phòng Hành chính",
 
       fileName: "",
+
       fileSize: "",
+
       fileData: "",
     },
   ]
+
+  // =========================
+  // ĐỌC LOCAL STORAGE
+  // =========================
 
   const savedRequests =
     JSON.parse(
@@ -177,6 +214,10 @@ function ServiceRequestDetailPage() {
       )
     ) || {}
 
+  // =========================
+  // TÌM YÊU CẦU
+  // =========================
+
   const allRequests = [
     ...defaultRequests,
     ...savedRequests,
@@ -200,24 +241,133 @@ function ServiceRequestDetailPage() {
   const suggestedHandler =
     routingConfig?.handler || ""
 
-  // Nếu dữ liệu cũ chưa có assignment
-  // nhưng kết quả đã lưu người phản hồi,
-  // dùng người phản hồi làm dữ liệu dự phòng.
-  const savedResponder =
-    results[id]?.responder || ""
+  // =========================
+  // HỖ TRỢ DỮ LIỆU CŨ
+  // =========================
 
-  const handlerFromResult =
-    savedResponder &&
-    savedResponder !==
-      "Người xử lý mô phỏng"
-      ? savedResponder
-      : ""
+  const splitHandlerText = (
+    value
+  ) => {
+    if (
+      !value ||
+      typeof value !== "string"
+    ) {
+      return {
+        name: "",
+        department: "",
+      }
+    }
 
-  const initialHandler =
-    assignments[id] ||
-    request?.handler ||
-    handlerFromResult ||
-    ""
+    const parts =
+      value.split(" - ")
+
+    if (parts.length >= 2) {
+      return {
+        name:
+          parts[0].trim(),
+
+        department:
+          parts
+            .slice(1)
+            .join(" - ")
+            .trim(),
+      }
+    }
+
+    return {
+      name:
+        value.trim(),
+
+      department: "",
+    }
+  }
+
+  const normalizeAssignment = (
+    rawAssignment
+  ) => {
+    if (!rawAssignment) {
+      return {
+        name: "",
+        department: "",
+      }
+    }
+
+    // Dữ liệu mới
+    if (
+      typeof rawAssignment ===
+      "object"
+    ) {
+      return {
+        name:
+          rawAssignment.name ||
+          "",
+
+        department:
+          rawAssignment.department ||
+          "",
+      }
+    }
+
+    // Tương thích dữ liệu cũ dạng string
+    return splitHandlerText(
+      rawAssignment
+    )
+  }
+
+  const savedAssignment =
+    normalizeAssignment(
+      assignments[id]
+    )
+
+  const legacyRequestHandler =
+    splitHandlerText(
+      request?.handler || ""
+    )
+
+  const resultHandler =
+    splitHandlerText(
+      results[id]?.responder ||
+        ""
+    )
+
+  const initialHandler = {
+    name:
+      savedAssignment.name ||
+      request?.handlerName ||
+      legacyRequestHandler.name ||
+      resultHandler.name ||
+      "",
+
+    department:
+      savedAssignment.department ||
+      request?.handlerDepartment ||
+      legacyRequestHandler.department ||
+      resultHandler.department ||
+      "",
+  }
+
+  const formatHandler = (
+    assignment
+  ) => {
+    if (
+      assignment?.name &&
+      assignment?.department
+    ) {
+      return `${assignment.name} - ${assignment.department}`
+    }
+
+    if (assignment?.name) {
+      return assignment.name
+    }
+
+    if (
+      assignment?.department
+    ) {
+      return assignment.department
+    }
+
+    return ""
+  }
 
   // =========================
   // STATE
@@ -239,11 +389,17 @@ function ServiceRequestDetailPage() {
   )
 
   const [
-    selectedHandler,
-    setSelectedHandler,
+    selectedHandlerName,
+    setSelectedHandlerName,
   ] = useState(
-    initialHandler ||
-      suggestedHandler
+    initialHandler.name
+  )
+
+  const [
+    selectedDepartment,
+    setSelectedDepartment,
+  ] = useState(
+    initialHandler.department
   )
 
   const [
@@ -383,16 +539,24 @@ function ServiceRequestDetailPage() {
   // =========================
 
   const saveAssignment = (
-    assignedHandler
+    name,
+    department
   ) => {
-    const cleanHandler =
-      assignedHandler.trim()
+    const cleanName =
+      name.trim()
 
-    if (!cleanHandler) {
-      return
+    const cleanDepartment =
+      department.trim()
+
+    const assignment = {
+      name:
+        cleanName,
+
+      department:
+        cleanDepartment,
     }
 
-    // 1. Lưu bảng phân công
+    // Lưu assignment riêng
     const currentAssignments =
       JSON.parse(
         localStorage.getItem(
@@ -401,7 +565,7 @@ function ServiceRequestDetailPage() {
       ) || {}
 
     currentAssignments[id] =
-      cleanHandler
+      assignment
 
     localStorage.setItem(
       "hlcServiceRequestAssignments",
@@ -410,8 +574,7 @@ function ServiceRequestDetailPage() {
       )
     )
 
-    // 2. Đồng thời lưu vào chính
-    // yêu cầu đã được người dùng tạo
+    // Đồng thời cập nhật request
     const currentRequests =
       JSON.parse(
         localStorage.getItem(
@@ -425,8 +588,15 @@ function ServiceRequestDetailPage() {
           item.id === id
             ? {
                 ...item,
+
+                handlerName:
+                  cleanName,
+
+                handlerDepartment:
+                  cleanDepartment,
+
                 handler:
-                  cleanHandler,
+                  `${cleanName} - ${cleanDepartment}`,
               }
             : item
       )
@@ -438,7 +608,9 @@ function ServiceRequestDetailPage() {
       )
     )
 
-    setHandler(cleanHandler)
+    setHandler(
+      assignment
+    )
   }
 
   // =========================
@@ -469,7 +641,7 @@ function ServiceRequestDetailPage() {
   }
 
   // =========================
-  // LƯU Ý KIẾN
+  // LƯU COMMENT
   // =========================
 
   const saveComments = (
@@ -496,7 +668,7 @@ function ServiceRequestDetailPage() {
   }
 
   // =========================
-  // ĐỔI VAI TRÒ MÔ PHỎNG
+  // ROLE
   // =========================
 
   const handleRoleChange = (
@@ -532,7 +704,8 @@ function ServiceRequestDetailPage() {
       }
 
       const newItem = {
-        type: "request",
+        type:
+          "request",
 
         author:
           "Điều phối viên",
@@ -590,25 +763,28 @@ function ServiceRequestDetailPage() {
       "Từ chối"
     )
 
-    setShowRejectForm(false)
     setRejectReason("")
+
+    setShowRejectForm(false)
   }
 
   const handleAssign = () => {
-    const cleanHandler =
-      selectedHandler.trim()
+    if (
+      !selectedHandlerName.trim() ||
+      !selectedDepartment.trim()
+    ) {
+      window.alert(
+        "Vui lòng nhập đầy đủ người xử lý và phòng ban / đơn vị."
+      )
 
-    if (!cleanHandler) {
       return
     }
 
-    // Quan trọng:
-    // lưu người xử lý trước
     saveAssignment(
-      cleanHandler
+      selectedHandlerName,
+      selectedDepartment
     )
 
-    // Sau đó mới chuyển trạng thái
     saveStatus(
       "Đang xử lý"
     )
@@ -628,7 +804,8 @@ function ServiceRequestDetailPage() {
     }
 
     const newItem = {
-      type: "response",
+      type:
+        "response",
 
       author:
         request.requester,
@@ -687,8 +864,6 @@ function ServiceRequestDetailPage() {
       )
     )
 
-    // Chỉ đổi trạng thái.
-    // Không xóa người xử lý.
     saveStatus(
       "Hoàn tất"
     )
@@ -697,8 +872,6 @@ function ServiceRequestDetailPage() {
   }
 
   const handleReopen = () => {
-    // Người xử lý đã phân công
-    // vẫn được giữ nguyên.
     saveStatus(
       "Đang xử lý"
     )
@@ -708,13 +881,16 @@ function ServiceRequestDetailPage() {
   // NGƯỜI XỬ LÝ
   // =========================
 
-  const getHandlerName = () => {
-    return (
-      handler ||
-      request.handler ||
-      "Người xử lý mô phỏng"
-    )
-  }
+  const handlerDisplay =
+    formatHandler(handler)
+
+  const getHandlerDisplay =
+    () => {
+      return (
+        handlerDisplay ||
+        "Người xử lý mô phỏng"
+      )
+    }
 
   const handleAddComment = () => {
     if (
@@ -725,7 +901,7 @@ function ServiceRequestDetailPage() {
 
     const newComment = {
       author:
-        getHandlerName(),
+        getHandlerDisplay(),
 
       content:
         commentText.trim(),
@@ -742,6 +918,7 @@ function ServiceRequestDetailPage() {
     ])
 
     setCommentText("")
+
     setShowCommentForm(false)
   }
 
@@ -764,7 +941,7 @@ function ServiceRequestDetailPage() {
         resultText.trim(),
 
       responder:
-        getHandlerName(),
+        getHandlerDisplay(),
 
       respondedAt:
         new Date().toLocaleString(
@@ -779,7 +956,6 @@ function ServiceRequestDetailPage() {
       )
     )
 
-    // Không thay đổi handler.
     saveStatus(
       "Chờ đánh giá"
     )
@@ -883,9 +1059,8 @@ function ServiceRequestDetailPage() {
     "Hoàn tất",
   ]
 
-  const handlerDisplay =
-    handler ||
-    request.handler ||
+  const handlerInformation =
+    handlerDisplay ||
     (
       statusesNeedHandler.includes(
         status
@@ -919,8 +1094,6 @@ function ServiceRequestDetailPage() {
         </div>
 
         <div className="detail-action-buttons">
-          {/* ĐIỀU PHỐI VIÊN */}
-
           {isDispatcher &&
             status ===
               "Chờ tiếp nhận" && (
@@ -973,8 +1146,6 @@ function ServiceRequestDetailPage() {
               </button>
             )}
 
-          {/* NGƯỜI YÊU CẦU */}
-
           {isRequester &&
             status ===
               "Chờ bổ sung" && (
@@ -1015,8 +1186,6 @@ function ServiceRequestDetailPage() {
                 </button>
               </>
             )}
-
-          {/* NGƯỜI XỬ LÝ */}
 
           {isHandler &&
             status ===
@@ -1067,7 +1236,9 @@ function ServiceRequestDetailPage() {
           </label>
 
           <select
-            value={currentRole}
+            value={
+              currentRole
+            }
             onChange={
               handleRoleChange
             }
@@ -1082,7 +1253,9 @@ function ServiceRequestDetailPage() {
                     role.value
                   }
                 >
-                  {role.label}
+                  {
+                    role.label
+                  }
                 </option>
               )
             )}
@@ -1141,9 +1314,7 @@ function ServiceRequestDetailPage() {
           <div className="settings-note">
             Yêu cầu hiện đang được{" "}
             <strong>
-              {handler ||
-                request.handler ||
-                "Người xử lý"}
+              {handlerInformation}
             </strong>{" "}
             xử lý.
           </div>
@@ -1155,14 +1326,9 @@ function ServiceRequestDetailPage() {
           <div className="settings-note">
             Yêu cầu đã được{" "}
             <strong>
-              {handler ||
-                request.handler ||
-                "Người xử lý"}
+              {handlerInformation}
             </strong>{" "}
-            phản hồi và đang chờ{" "}
-            <strong>
-              Người yêu cầu
-            </strong>{" "}
+            xử lý và đang chờ Người yêu cầu
             đánh giá kết quả.
           </div>
         )}
@@ -1343,29 +1509,57 @@ function ServiceRequestDetailPage() {
 
           <div className="form-group">
             <label>
-              Người / đơn vị xử lý *
+              Người xử lý *
             </label>
 
             <input
               type="text"
-              placeholder="Nhập người hoặc đơn vị xử lý"
+              placeholder="Ví dụ: Nguyễn Văn A"
               value={
-                selectedHandler
+                selectedHandlerName
               }
               onChange={(e) =>
-                setSelectedHandler(
+                setSelectedHandlerName(
                   e.target.value
                 )
               }
             />
-
-            {!suggestedHandler && (
-              <small>
-                Chưa có cấu hình điều phối
-                cho danh mục này.
-              </small>
-            )}
           </div>
+
+          <div className="form-group">
+            <label>
+              Phòng ban / đơn vị *
+            </label>
+
+            <input
+              type="text"
+              placeholder="Ví dụ: Phòng CNTT"
+              value={
+                selectedDepartment
+              }
+              onChange={(e) =>
+                setSelectedDepartment(
+                  e.target.value
+                )
+              }
+            />
+          </div>
+
+          {selectedHandlerName &&
+            selectedDepartment && (
+              <div className="settings-note">
+                Người được phân công:{" "}
+                <strong>
+                  {
+                    selectedHandlerName
+                  }{" "}
+                  -{" "}
+                  {
+                    selectedDepartment
+                  }
+                </strong>
+              </div>
+            )}
 
           <div className="form-actions">
             <button
@@ -1444,7 +1638,7 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
-      {/* PHẢN HỒI KẾT QUẢ */}
+      {/* PHẢN HỒI */}
 
       {showResultForm && (
         <div className="detail-card">
@@ -1546,7 +1740,7 @@ function ServiceRequestDetailPage() {
         </div>
       )}
 
-      {/* LÝ DO TỪ CHỐI */}
+      {/* TỪ CHỐI */}
 
       {status ===
         "Từ chối" &&
@@ -1620,7 +1814,7 @@ function ServiceRequestDetailPage() {
 
             <p>
               <strong>
-                {handlerDisplay}
+                {handlerInformation}
               </strong>
             </p>
           </div>
@@ -1672,21 +1866,12 @@ function ServiceRequestDetailPage() {
           <table>
             <thead>
               <tr>
-                <th>
-                  Loại
-                </th>
-
+                <th>Loại</th>
                 <th>
                   Người thực hiện
                 </th>
-
-                <th>
-                  Nội dung
-                </th>
-
-                <th>
-                  Thời gian
-                </th>
+                <th>Nội dung</th>
+                <th>Thời gian</th>
               </tr>
             </thead>
 
