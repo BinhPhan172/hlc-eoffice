@@ -47,40 +47,37 @@ import SettingsPrioritySlaPage from "./pages/SettingsPrioritySlaPage"
 import SettingsProcessingRulesPage from "./pages/SettingsProcessingRulesPage"
 
 function Layout() {
-  const location = useLocation()
-  const navigate = useNavigate()
+  const location =
+    useLocation()
+
+  const navigate =
+    useNavigate()
 
   const defaultProfile = {
-    fullName: "Nguyễn Văn A",
+    fullName:
+      "Nguyễn Văn A",
   }
 
-  const getStoredProfile = () => {
-    return (
+  const getStoredProfile =
+    () =>
       JSON.parse(
         localStorage.getItem(
           "hlcProfile"
         )
       ) || defaultProfile
-    )
-  }
 
-  const [profile, setProfile] =
-    useState(
-      getStoredProfile()
-    )
+  const [
+    profile,
+    setProfile,
+  ] = useState(
+    getStoredProfile()
+  )
 
   // =========================
-  // TỰ ĐƯA TRANG VỀ ĐẦU
-  // KHI CHUYỂN ROUTE
+  // RESET SCROLL KHI ĐỔI ROUTE
   // =========================
 
   useEffect(() => {
-    window.scrollTo({
-      top: 0,
-      left: 0,
-      behavior: "auto",
-    })
-
     const content =
       document.querySelector(
         ".content"
@@ -90,27 +87,21 @@ function Layout() {
       content.scrollTop = 0
       content.scrollLeft = 0
     }
-
-    const main =
-      document.querySelector(
-        ".main"
-      )
-
-    if (main) {
-      main.scrollTop = 0
-      main.scrollLeft = 0
-    }
-  }, [location.pathname])
+  }, [
+    location.pathname,
+  ])
 
   // =========================
-  // CẬP NHẬT PROFILE
+  // PROFILE
   // =========================
 
   useEffect(() => {
     const handleProfileUpdated = (
       event
     ) => {
-      if (event.detail) {
+      if (
+        event.detail
+      ) {
         setProfile(
           event.detail
         )
@@ -135,7 +126,8 @@ function Layout() {
   }, [])
 
   const titles = {
-    "/": "Tổng quan",
+    "/":
+      "Tổng quan",
 
     "/documents":
       "Tài liệu",
@@ -183,86 +175,114 @@ function Layout() {
       "Cấu hình quy tắc xử lý",
   }
 
-  const getPageTitle = () => {
-    if (
-      location.pathname ===
-      "/documents/upload"
-    ) {
-      return "Tải lên tài liệu"
-    }
+  const getPageTitle =
+    () => {
+      if (
+        location.pathname ===
+        "/documents/upload"
+      ) {
+        return "Tải lên tài liệu"
+      }
 
-    if (
-      location.pathname.endsWith(
-        "/version"
+      if (
+        location.pathname.endsWith(
+          "/version"
+        )
+      ) {
+        return "Cập nhật phiên bản"
+      }
+
+      if (
+        location.pathname.endsWith(
+          "/share"
+        )
+      ) {
+        return "Chia sẻ tài liệu"
+      }
+
+      if (
+        location.pathname.startsWith(
+          "/documents/"
+        )
+      ) {
+        return "Chi tiết tài liệu"
+      }
+
+      if (
+        location.pathname ===
+        "/approval/create"
+      ) {
+        return "Khởi tạo trình ký"
+      }
+
+      if (
+        location.pathname.endsWith(
+          "/sign"
+        )
+      ) {
+        return "Ký tài liệu"
+      }
+
+      if (
+        location.pathname.startsWith(
+          "/approval/"
+        )
+      ) {
+        return "Chi tiết trình ký"
+      }
+
+      if (
+        location.pathname ===
+        "/service-requests/create"
+      ) {
+        return "Tạo yêu cầu dịch vụ"
+      }
+
+      if (
+        location.pathname.startsWith(
+          "/service-requests/"
+        )
+      ) {
+        return "Chi tiết yêu cầu"
+      }
+
+      return (
+        titles[
+          location.pathname
+        ] ||
+        "HLC E-Office"
       )
-    ) {
-      return "Cập nhật phiên bản"
     }
-
-    if (
-      location.pathname.endsWith(
-        "/share"
-      )
-    ) {
-      return "Chia sẻ tài liệu"
-    }
-
-    if (
-      location.pathname.startsWith(
-        "/documents/"
-      )
-    ) {
-      return "Chi tiết tài liệu"
-    }
-
-    if (
-      location.pathname ===
-      "/approval/create"
-    ) {
-      return "Khởi tạo trình ký"
-    }
-
-    if (
-      location.pathname.endsWith(
-        "/sign"
-      )
-    ) {
-      return "Ký tài liệu"
-    }
-
-    if (
-      location.pathname.startsWith(
-        "/approval/"
-      )
-    ) {
-      return "Chi tiết trình ký"
-    }
-
-    if (
-      location.pathname ===
-      "/service-requests/create"
-    ) {
-      return "Tạo yêu cầu dịch vụ"
-    }
-
-    if (
-      location.pathname.startsWith(
-        "/service-requests/"
-      )
-    ) {
-      return "Chi tiết yêu cầu"
-    }
-
-    return (
-      titles[
-        location.pathname
-      ] || "HLC E-Office"
-    )
-  }
 
   return (
-    <div className="app">
-      <aside className="sidebar">
+    <div
+      className="app"
+      style={{
+        height:
+          "100vh",
+
+        minHeight:
+          "100vh",
+
+        overflow:
+          "hidden",
+      }}
+    >
+      <aside
+        className="sidebar"
+        style={{
+          height:
+            "100vh",
+
+          flexShrink: 0,
+
+          overflowY:
+            "auto",
+
+          boxSizing:
+            "border-box",
+        }}
+      >
         <div className="logo">
           HLC E-OFFICE
         </div>
@@ -294,8 +314,24 @@ function Layout() {
         </nav>
       </aside>
 
-      <div className="main">
-        <header className="header">
+      <div
+        className="main"
+        style={{
+          height:
+            "100vh",
+
+          minHeight: 0,
+
+          overflow:
+            "hidden",
+        }}
+      >
+        <header
+          className="header"
+          style={{
+            flexShrink: 0,
+          }}
+        >
           <h2>
             {getPageTitle()}
           </h2>
@@ -308,14 +344,30 @@ function Layout() {
               )
             }
             style={{
-              cursor: "pointer",
+              cursor:
+                "pointer",
             }}
           >
-            {profile.fullName}
+            {
+              profile.fullName
+            }
           </div>
         </header>
 
-        <main className="content">
+        <main
+          className="content"
+          style={{
+            flex: 1,
+
+            minHeight: 0,
+
+            overflowY:
+              "auto",
+
+            overflowX:
+              "hidden",
+          }}
+        >
           <Routes>
             <Route
               path="/"

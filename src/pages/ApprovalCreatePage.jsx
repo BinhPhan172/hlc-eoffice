@@ -7,7 +7,6 @@ import {
 import { useNavigate } from "react-router-dom"
 
 import * as pdfjsLib from "pdfjs-dist"
-
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url"
 
 pdfjsLib.GlobalWorkerOptions.workerSrc =
@@ -26,28 +25,84 @@ function ApprovalCreatePage() {
     "Phạm Văn D",
   ]
 
-  const defaultSignatures = [
+  const defaultCategories = [
     {
-      id: "SIGN-001",
-      name: "SmartCA",
+      id: "DOC-CAT-001",
+      name: "Quy chế",
     },
     {
-      id: "SIGN-002",
-      name: "USB Token",
+      id: "DOC-CAT-002",
+      name: "Hướng dẫn",
+    },
+    {
+      id: "DOC-CAT-003",
+      name: "Biên bản",
+    },
+    {
+      id: "DOC-CAT-004",
+      name: "Khác",
     },
   ]
 
-  const savedSignatures =
+  const savedCategories =
     JSON.parse(
       localStorage.getItem(
-        "hlcDigitalSignatures"
+        "hlcDocumentCategories"
       )
     )
 
-  const signatureMethods =
-    savedSignatures !== null
-      ? savedSignatures
-      : defaultSignatures
+  const documentCategories =
+    savedCategories !== null
+      ? savedCategories
+      : defaultCategories
+
+  const priorityOptions = [
+    "Bình thường",
+    "Cao",
+    "Khẩn",
+  ]
+
+  const flowTypeOptions = [
+    "Tuần tự",
+    "Song song",
+  ]
+
+  const actionTypeOptions = [
+    "Kiểm soát",
+    "Tham mưu",
+    "Ký duyệt",
+  ]
+
+  const signatureMethodOptions = [
+    "Nội bộ",
+    "VNPT Smart CA",
+    "USB Token",
+  ]
+
+  const createId = (
+    prefix
+  ) =>
+    `${prefix}-${Date.now()}-${Math.random()
+      .toString(36)
+      .slice(2, 8)}`
+
+  const createHandler = () => ({
+    id: createId("handler"),
+    user: "",
+    actionType:
+      "Kiểm soát",
+    signatureMethod: "",
+  })
+
+  const createStep = () => ({
+    id: createId("step"),
+    name: "",
+    flowType:
+      "Tuần tự",
+    handlers: [
+      createHandler(),
+    ],
+  })
 
   const [name, setName] =
     useState("")
@@ -57,16 +112,22 @@ function ApprovalCreatePage() {
     setDescription,
   ] = useState("")
 
-  const [approver, setApprover] =
-    useState("")
-
-  const [signer, setSigner] =
-    useState("")
+  const [
+    documentType,
+    setDocumentType,
+  ] = useState("")
 
   const [
-    signatureMethod,
-    setSignatureMethod,
-  ] = useState("")
+    priority,
+    setPriority,
+  ] = useState(
+    "Bình thường"
+  )
+
+  const [steps, setSteps] =
+    useState(() => [
+      createStep(),
+    ])
 
   const [file, setFile] =
     useState(null)
@@ -81,8 +142,10 @@ function ApprovalCreatePage() {
     setPdfDocument,
   ] = useState(null)
 
-  const [numPages, setNumPages] =
-    useState(0)
+  const [
+    numPages,
+    setNumPages,
+  ] = useState(0)
 
   const [
     pdfLoading,
@@ -114,32 +177,38 @@ function ApprovalCreatePage() {
   const [saving, setSaving] =
     useState(false)
 
+  // =========================
+  // FILE
+  // =========================
+
   const readFileAsDataUrl = (
     selectedFile
-  ) => {
-    return new Promise(
-      (resolve, reject) => {
+  ) =>
+    new Promise(
+      (
+        resolve,
+        reject
+      ) => {
         const reader =
           new FileReader()
 
-        reader.onload = () => {
-          resolve(reader.result)
-        }
+        reader.onload = () =>
+          resolve(
+            reader.result
+          )
 
-        reader.onerror = () => {
+        reader.onerror = () =>
           reject(
             new Error(
               "Không thể đọc file."
             )
           )
-        }
 
         reader.readAsDataURL(
           selectedFile
         )
       }
     )
-  }
 
   const dataUrlToUint8Array = (
     dataUrl
@@ -157,11 +226,14 @@ function ApprovalCreatePage() {
 
     for (
       let i = 0;
-      i < binaryString.length;
+      i <
+      binaryString.length;
       i += 1
     ) {
       bytes[i] =
-        binaryString.charCodeAt(i)
+        binaryString.charCodeAt(
+          i
+        )
     }
 
     return bytes
@@ -183,7 +255,9 @@ function ApprovalCreatePage() {
             : 0
         })
         .filter((number) =>
-          Number.isFinite(number)
+          Number.isFinite(
+            number
+          )
         )
 
     const highest =
@@ -197,58 +271,67 @@ function ApprovalCreatePage() {
     ).padStart(4, "0")}`
   }
 
-  const handleFileChange = async (
-    event
-  ) => {
-    const selectedFile =
-      event.target.files[0] ||
-      null
+  const handleFileChange =
+    async (event) => {
+      const selectedFile =
+        event.target
+          .files[0] ||
+        null
 
-    setError("")
-    setPdfError("")
-    setPdfDocument(null)
-    setNumPages(0)
+      setError("")
+      setPdfError("")
+      setPdfDocument(null)
+      setNumPages(0)
 
-    setSignaturePosition({
-      page: 1,
-      x: 75,
-      y: 75,
-    })
+      setSignaturePosition({
+        page: 1,
+        x: 75,
+        y: 75,
+      })
 
-    if (!selectedFile) {
-      setFile(null)
-      setFilePreview("")
-      return
-    }
+      if (!selectedFile) {
+        setFile(null)
+        setFilePreview("")
+        return
+      }
 
-    if (
-      selectedFile.size >
-      2 * 1024 * 1024
-    ) {
-      setFile(null)
-      setFilePreview("")
+      if (
+        selectedFile.size >
+        2 * 1024 * 1024
+      ) {
+        setFile(null)
+        setFilePreview("")
 
-      setError(
-        "Prototype hiện chỉ lưu file tối đa 2 MB."
-      )
+        setError(
+          "Prototype hiện chỉ lưu file tối đa 2 MB."
+        )
 
-      return
-    }
+        return
+      }
 
-    try {
-      const data =
-        await readFileAsDataUrl(
+      try {
+        const data =
+          await readFileAsDataUrl(
+            selectedFile
+          )
+
+        setFile(
           selectedFile
         )
 
-      setFile(selectedFile)
-      setFilePreview(data)
-    } catch {
-      setError(
-        "Không thể đọc file đã chọn."
-      )
+        setFilePreview(
+          data
+        )
+      } catch {
+        setError(
+          "Không thể đọc file đã chọn."
+        )
+      }
     }
-  }
+
+  // =========================
+  // PDF
+  // =========================
 
   useEffect(() => {
     if (
@@ -265,47 +348,60 @@ function ApprovalCreatePage() {
     let cancelled = false
     let loadedPdf = null
 
-    const loadPdf = async () => {
-      try {
-        setPdfLoading(true)
-        setPdfError("")
-
-        const pdfData =
-          dataUrlToUint8Array(
-            filePreview
+    const loadPdf =
+      async () => {
+        try {
+          setPdfLoading(
+            true
           )
 
-        const loadingTask =
-          pdfjsLib.getDocument({
-            data: pdfData,
-          })
+          setPdfError("")
 
-        const pdf =
-          await loadingTask.promise
+          const data =
+            dataUrlToUint8Array(
+              filePreview
+            )
 
-        if (cancelled) {
-          await pdf.destroy()
-          return
-        }
+          const loadingTask =
+            pdfjsLib.getDocument({
+              data,
+            })
 
-        loadedPdf = pdf
+          const pdf =
+            await loadingTask.promise
 
-        setPdfDocument(pdf)
-        setNumPages(pdf.numPages)
-      } catch (err) {
-        console.error(err)
+          if (cancelled) {
+            await pdf.destroy()
+            return
+          }
 
-        if (!cancelled) {
-          setPdfError(
-            "Không thể hiển thị file PDF."
+          loadedPdf = pdf
+
+          setPdfDocument(
+            pdf
           )
-        }
-      } finally {
-        if (!cancelled) {
-          setPdfLoading(false)
+
+          setNumPages(
+            pdf.numPages
+          )
+        } catch (err) {
+          console.error(
+            err
+          )
+
+          if (!cancelled) {
+            setPdfError(
+              "Không thể hiển thị file PDF."
+            )
+          }
+        } finally {
+          if (!cancelled) {
+            setPdfLoading(
+              false
+            )
+          }
         }
       }
-    }
 
     loadPdf()
 
@@ -316,7 +412,10 @@ function ApprovalCreatePage() {
         loadedPdf.destroy()
       }
     }
-  }, [file, filePreview])
+  }, [
+    file,
+    filePreview,
+  ])
 
   useEffect(() => {
     if (
@@ -332,7 +431,8 @@ function ApprovalCreatePage() {
       async () => {
         for (
           let pageNumber = 1;
-          pageNumber <= numPages;
+          pageNumber <=
+          numPages;
           pageNumber += 1
         ) {
           if (cancelled) {
@@ -359,7 +459,8 @@ function ApprovalCreatePage() {
                 scale: 1,
               })
 
-            const targetWidth = 760
+            const targetWidth =
+              760
 
             const scale =
               targetWidth /
@@ -375,7 +476,9 @@ function ApprovalCreatePage() {
               1
 
             const context =
-              canvas.getContext("2d")
+              canvas.getContext(
+                "2d"
+              )
 
             canvas.width =
               Math.floor(
@@ -418,7 +521,6 @@ function ApprovalCreatePage() {
           } catch (err) {
             if (!cancelled) {
               console.error(
-                `Không thể render trang ${pageNumber}`,
                 err
               )
             }
@@ -435,6 +537,214 @@ function ApprovalCreatePage() {
     pdfDocument,
     numPages,
   ])
+
+  // =========================
+  // LUỒNG
+  // =========================
+
+  const handleAddStep =
+    () => {
+      setSteps([
+        ...steps,
+        createStep(),
+      ])
+    }
+
+  const handleRemoveStep = (
+    stepId
+  ) => {
+    if (
+      steps.length === 1
+    ) {
+      window.alert(
+        "Luồng trình ký phải có ít nhất 1 bước."
+      )
+      return
+    }
+
+    setSteps(
+      steps.filter(
+        (step) =>
+          step.id !==
+          stepId
+      )
+    )
+  }
+
+  const handleStepChange = (
+    stepId,
+    field,
+    value
+  ) => {
+    setSteps(
+      steps.map(
+        (step) =>
+          step.id ===
+          stepId
+            ? {
+                ...step,
+                [field]:
+                  value,
+              }
+            : step
+      )
+    )
+  }
+
+  const handleAddHandler = (
+    stepId
+  ) => {
+    setSteps(
+      steps.map(
+        (step) =>
+          step.id ===
+          stepId
+            ? {
+                ...step,
+
+                handlers: [
+                  ...step.handlers,
+                  createHandler(),
+                ],
+              }
+            : step
+      )
+    )
+  }
+
+  const handleRemoveHandler = (
+    stepId,
+    handlerId
+  ) => {
+    setSteps(
+      steps.map(
+        (step) => {
+          if (
+            step.id !==
+            stepId
+          ) {
+            return step
+          }
+
+          if (
+            step.handlers
+              .length === 1
+          ) {
+            window.alert(
+              "Mỗi bước phải có ít nhất 1 người xử lý."
+            )
+
+            return step
+          }
+
+          return {
+            ...step,
+
+            handlers:
+              step.handlers.filter(
+                (handler) =>
+                  handler.id !==
+                  handlerId
+              ),
+          }
+        }
+      )
+    )
+  }
+
+  const handleHandlerChange = (
+    stepId,
+    handlerId,
+    field,
+    value
+  ) => {
+    setSteps(
+      steps.map(
+        (step) => {
+          if (
+            step.id !==
+            stepId
+          ) {
+            return step
+          }
+
+          return {
+            ...step,
+
+            handlers:
+              step.handlers.map(
+                (
+                  handler
+                ) => {
+                  if (
+                    handler.id !==
+                    handlerId
+                  ) {
+                    return handler
+                  }
+
+                  const updated = {
+                    ...handler,
+                    [field]:
+                      value,
+                  }
+
+                  // Nếu đổi khỏi Ký duyệt
+                  // thì xóa phương thức ký.
+                  if (
+                    field ===
+                      "actionType" &&
+                    value !==
+                      "Ký duyệt"
+                  ) {
+                    updated.signatureMethod =
+                      ""
+                  }
+
+                  return updated
+                }
+              ),
+          }
+        }
+      )
+    )
+  }
+
+  const allHandlers =
+    steps.flatMap(
+      (step) =>
+        step.handlers
+    )
+
+  const primarySignerHandler =
+    allHandlers.find(
+      (handler) =>
+        handler.actionType ===
+          "Ký duyệt" &&
+        handler.user
+    )
+
+  const primarySigner =
+    primarySignerHandler
+      ?.user || ""
+
+  const primarySignatureMethod =
+    primarySignerHandler
+      ?.signatureMethod ||
+    ""
+
+  const primaryApprover =
+    allHandlers.find(
+      (handler) =>
+        handler.actionType !==
+          "Ký duyệt" &&
+        handler.user
+    )?.user ||
+    primarySigner
+
+  // =========================
+  // VỊ TRÍ KÝ
+  // =========================
 
   const updateSignaturePosition = (
     clientX,
@@ -454,12 +764,14 @@ function ApprovalCreatePage() {
       pageElement.getBoundingClientRect()
 
     let x =
-      ((clientX - rect.left) /
+      ((clientX -
+        rect.left) /
         rect.width) *
       100
 
     let y =
-      ((clientY - rect.top) /
+      ((clientY -
+        rect.top) /
         rect.height) *
       100
 
@@ -474,7 +786,8 @@ function ApprovalCreatePage() {
     )
 
     setSignaturePosition({
-      page: pageNumber,
+      page:
+        pageNumber,
       x,
       y,
     })
@@ -567,6 +880,10 @@ function ApprovalCreatePage() {
       }
     }
 
+  // =========================
+  // TẠO HỒ SƠ
+  // =========================
+
   const handleCreate = () => {
     if (!name.trim()) {
       setError(
@@ -575,23 +892,9 @@ function ApprovalCreatePage() {
       return
     }
 
-    if (!approver) {
+    if (!documentType) {
       setError(
-        "Vui lòng chọn người phê duyệt."
-      )
-      return
-    }
-
-    if (!signer) {
-      setError(
-        "Vui lòng chọn người ký."
-      )
-      return
-    }
-
-    if (!signatureMethod) {
-      setError(
-        "Vui lòng chọn loại/phương thức ký."
+        "Vui lòng chọn loại tài liệu."
       )
       return
     }
@@ -599,6 +902,65 @@ function ApprovalCreatePage() {
     if (!file) {
       setError(
         "Vui lòng chọn file trình ký."
+      )
+      return
+    }
+
+    for (
+      let i = 0;
+      i < steps.length;
+      i += 1
+    ) {
+      const step =
+        steps[i]
+
+      if (
+        !step.name.trim()
+      ) {
+        setError(
+          `Vui lòng nhập tên Bước ${
+            i + 1
+          }.`
+        )
+        return
+      }
+
+      for (
+        let j = 0;
+        j <
+        step.handlers.length;
+        j += 1
+      ) {
+        const handler =
+          step.handlers[j]
+
+        if (!handler.user) {
+          setError(
+            `Vui lòng chọn người xử lý ở Bước ${
+              i + 1
+            }.`
+          )
+          return
+        }
+
+        if (
+          handler.actionType ===
+            "Ký duyệt" &&
+          !handler.signatureMethod
+        ) {
+          setError(
+            `Vui lòng chọn Phương thức ký cho người Ký duyệt ở Bước ${
+              i + 1
+            }.`
+          )
+          return
+        }
+      }
+    }
+
+    if (!primarySigner) {
+      setError(
+        "Luồng trình ký cần ít nhất một người có loại xử lý Ký duyệt."
       )
       return
     }
@@ -619,8 +981,58 @@ function ApprovalCreatePage() {
           savedApprovals
         )
 
+      const normalizedSteps =
+        steps.map(
+          (
+            step,
+            index
+          ) => ({
+            id:
+              step.id,
+
+            step:
+              index + 1,
+
+            name:
+              step.name.trim(),
+
+            flowType:
+              step.flowType,
+
+            handlers:
+              step.handlers.map(
+                (
+                  handler
+                ) => ({
+                  id:
+                    handler.id,
+
+                  user:
+                    handler.user,
+
+                  actionType:
+                    handler.actionType,
+
+                  signatureMethod:
+                    handler.actionType ===
+                    "Ký duyệt"
+                      ? handler.signatureMethod
+                      : "",
+                })
+              ),
+          })
+        )
+
+      const initialStatus =
+        primaryApprover &&
+        primaryApprover !==
+          primarySigner
+          ? "Chờ phê duyệt"
+          : "Chờ ký"
+
       const newApproval = {
-        id: newId,
+        id:
+          newId,
 
         name:
           name.trim(),
@@ -628,46 +1040,44 @@ function ApprovalCreatePage() {
         description:
           description.trim(),
 
+        documentType,
+
+        priority,
+
         creator:
           "Nguyễn Văn A",
 
-        approver,
+        // Giữ tương thích màn hiện tại
+        approver:
+          primaryApprover,
 
-        signer,
+        signer:
+          primarySigner,
 
-        approvalFlow: [
-          {
-            step: 1,
-            type:
-              "Phê duyệt",
-            user:
-              approver,
-          },
-          {
-            step: 2,
-            type: "Ký",
-            user:
-              signer,
-          },
-        ],
+        // Màn ký hiện tại đọc field này
+        signatureMethod:
+          primarySignatureMethod,
 
-        signatureMethod,
+        approvalFlow:
+          normalizedSteps,
 
         signaturePosition: {
           page:
             signaturePosition.page,
 
-          x: Number(
-            signaturePosition.x.toFixed(
-              2
-            )
-          ),
+          x:
+            Number(
+              signaturePosition.x.toFixed(
+                2
+              )
+            ),
 
-          y: Number(
-            signaturePosition.y.toFixed(
-              2
-            )
-          ),
+          y:
+            Number(
+              signaturePosition.y.toFixed(
+                2
+              )
+            ),
         },
 
         updatedAt:
@@ -676,7 +1086,7 @@ function ApprovalCreatePage() {
           ),
 
         status:
-          "Chờ phê duyệt",
+          initialStatus,
 
         fileName:
           file.name,
@@ -702,14 +1112,13 @@ function ApprovalCreatePage() {
         ])
       )
 
-      // QUAN TRỌNG:
-      // tải lại trực tiếp trang chi tiết
-      // để tránh màn trắng sau khi tạo.
       window.location.assign(
         `/approval/${newId}`
       )
     } catch (err) {
-      console.error(err)
+      console.error(
+        err
+      )
 
       setError(
         "Không thể tạo hồ sơ trình ký."
@@ -718,6 +1127,10 @@ function ApprovalCreatePage() {
       setSaving(false)
     }
   }
+
+  // =========================
+  // SIGNATURE PREVIEW
+  // =========================
 
   const renderSignatureBox = (
     pageNumber
@@ -732,13 +1145,17 @@ function ApprovalCreatePage() {
     return (
       <div
         className="signature-box"
-        onPointerDown={(event) =>
+        onPointerDown={(
+          event
+        ) =>
           handlePointerDown(
             event,
             pageNumber
           )
         }
-        onPointerMove={(event) =>
+        onPointerMove={(
+          event
+        ) =>
           handlePointerMove(
             event,
             pageNumber
@@ -751,7 +1168,8 @@ function ApprovalCreatePage() {
           handlePointerUp
         }
         style={{
-          position: "absolute",
+          position:
+            "absolute",
 
           left: `${signaturePosition.x}%`,
 
@@ -760,21 +1178,26 @@ function ApprovalCreatePage() {
           transform:
             "translate(-50%, -50%)",
 
-          width: "150px",
+          width:
+            "175px",
 
-          minHeight: "68px",
+          minHeight:
+            "78px",
 
-          padding: "8px",
+          padding:
+            "8px",
 
           border:
             "2px dashed #2563eb",
 
           background:
-            "rgba(219, 234, 254, 0.92)",
+            "rgba(219, 234, 254, 0.94)",
 
-          borderRadius: "8px",
+          borderRadius:
+            "8px",
 
-          display: "flex",
+          display:
+            "flex",
 
           flexDirection:
             "column",
@@ -800,14 +1223,13 @@ function ApprovalCreatePage() {
               ? "grabbing"
               : "grab",
 
-          userSelect: "none",
+          userSelect:
+            "none",
 
-          touchAction: "none",
+          touchAction:
+            "none",
 
           zIndex: 10,
-
-          boxShadow:
-            "0 4px 12px rgba(0,0,0,0.12)",
         }}
       >
         <span>
@@ -815,276 +1237,314 @@ function ApprovalCreatePage() {
         </span>
 
         <small>
-          Trang {pageNumber}
+          {primarySigner ||
+            "Người ký duyệt"}
         </small>
 
         <small>
-          {signatureMethod ||
-            "Chưa chọn loại ký"}
+          {primarySignatureMethod ||
+            "Chưa chọn phương thức"}
         </small>
       </div>
     )
   }
 
-  const renderPdfPreview = () => {
-    if (pdfLoading) {
+  const renderPdfPreview =
+    () => {
+      if (pdfLoading) {
+        return (
+          <div
+            style={{
+              padding:
+                "40px",
+              textAlign:
+                "center",
+            }}
+          >
+            Đang tải PDF...
+          </div>
+        )
+      }
+
+      if (pdfError) {
+        return (
+          <div className="form-error">
+            {pdfError}
+          </div>
+        )
+      }
+
+      if (
+        !pdfDocument ||
+        numPages === 0
+      ) {
+        return null
+      }
+
       return (
-        <div
-          style={{
-            padding: "40px",
-            textAlign: "center",
-          }}
-        >
-          Đang tải PDF...
-        </div>
-      )
-    }
+        <div>
+          <div
+            style={{
+              display:
+                "flex",
 
-    if (pdfError) {
-      return (
-        <div className="form-error">
-          {pdfError}
-        </div>
-      )
-    }
+              justifyContent:
+                "space-between",
 
-    if (
-      !pdfDocument ||
-      numPages === 0
-    ) {
-      return null
-    }
+              alignItems:
+                "center",
 
-    return (
-      <div>
-        <div
-          style={{
-            position: "sticky",
-            top: 0,
-            zIndex: 20,
+              gap:
+                "12px",
 
-            display: "flex",
+              padding:
+                "12px 14px",
 
-            justifyContent:
-              "space-between",
+              border:
+                "1px solid #e5e7eb",
 
-            alignItems:
-              "center",
+              background:
+                "#ffffff",
+            }}
+          >
+            <div>
+              <strong>
+                PDF có{" "}
+                {numPages}{" "}
+                trang
+              </strong>
 
-            gap: "12px",
+              <div
+                style={{
+                  fontSize:
+                    "13px",
 
-            padding:
-              "10px 14px",
-
-            background:
-              "#ffffff",
-
-            borderBottom:
-              "1px solid #e5e7eb",
-          }}
-        >
-          <div>
-            <strong>
-              PDF có {numPages} trang
-            </strong>
-
-            <div
-              style={{
-                fontSize: "13px",
-                color: "#6b7280",
-              }}
-            >
-              Vùng ký đang ở trang{" "}
-              {signaturePosition.page}
+                  color:
+                    "#6b7280",
+                }}
+              >
+                Vùng ký đang ở
+                trang{" "}
+                {
+                  signaturePosition.page
+                }
+              </div>
             </div>
+
+            <button
+              type="button"
+              className="secondary-button"
+              onClick={
+                scrollToSignaturePage
+              }
+            >
+              Đi tới vùng ký
+            </button>
           </div>
 
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={
-              scrollToSignaturePage
-            }
+          <div
+            style={{
+              height:
+                "650px",
+
+              overflowY:
+                "auto",
+
+              background:
+                "#d1d5db",
+
+              padding:
+                "24px",
+            }}
           >
-            Đi tới vùng ký
-          </button>
-        </div>
+            {Array.from(
+              {
+                length:
+                  numPages,
+              },
+              (_, index) => {
+                const pageNumber =
+                  index + 1
 
-        <div
-          style={{
-            height: "650px",
-            overflowY: "auto",
-            background:
-              "#d1d5db",
-            padding: "24px",
-          }}
-        >
-          {Array.from(
-            {
-              length: numPages,
-            },
-            (_, index) => {
-              const pageNumber =
-                index + 1
-
-              return (
-                <div
-                  key={pageNumber}
-                  style={{
-                    marginBottom:
-                      "30px",
-                  }}
-                >
+                return (
                   <div
-                    style={{
-                      textAlign:
-                        "center",
-                      marginBottom:
-                        "8px",
-                      fontWeight:
-                        "600",
-                      color:
-                        "#374151",
-                    }}
-                  >
-                    Trang{" "}
-                    {pageNumber} /{" "}
-                    {numPages}
-                  </div>
-
-                  <div
-                    ref={(element) => {
-                      pageRefs.current[
-                        pageNumber
-                      ] = element
-                    }}
-                    onClick={(
-                      event
-                    ) =>
-                      handlePageClick(
-                        event,
-                        pageNumber
-                      )
+                    key={
+                      pageNumber
                     }
                     style={{
-                      position:
-                        "relative",
-
-                      width:
-                        "100%",
-
-                      maxWidth:
-                        "760px",
-
-                      margin:
-                        "0 auto",
-
-                      background:
-                        "#ffffff",
-
-                      boxShadow:
-                        "0 4px 16px rgba(0,0,0,0.18)",
-
-                      cursor:
-                        "crosshair",
+                      marginBottom:
+                        "30px",
                     }}
                   >
-                    <canvas
+                    <div
+                      style={{
+                        textAlign:
+                          "center",
+
+                        marginBottom:
+                          "8px",
+
+                        fontWeight:
+                          "600",
+                      }}
+                    >
+                      Trang{" "}
+                      {
+                        pageNumber
+                      }{" "}
+                      /{" "}
+                      {
+                        numPages
+                      }
+                    </div>
+
+                    <div
                       ref={(
                         element
                       ) => {
-                        canvasRefs.current[
+                        pageRefs.current[
                           pageNumber
-                        ] = element
+                        ] =
+                          element
                       }}
+                      onClick={(
+                        event
+                      ) =>
+                        handlePageClick(
+                          event,
+                          pageNumber
+                        )
+                      }
                       style={{
-                        display:
-                          "block",
+                        position:
+                          "relative",
 
-                        width:
-                          "100%",
+                        maxWidth:
+                          "760px",
 
-                        height:
-                          "auto",
+                        margin:
+                          "0 auto",
+
+                        background:
+                          "#ffffff",
+
+                        cursor:
+                          "crosshair",
+
+                        boxShadow:
+                          "0 4px 16px rgba(0,0,0,0.18)",
                       }}
-                    />
+                    >
+                      <canvas
+                        ref={(
+                          element
+                        ) => {
+                          canvasRefs.current[
+                            pageNumber
+                          ] =
+                            element
+                        }}
+                        style={{
+                          display:
+                            "block",
 
-                    {renderSignatureBox(
-                      pageNumber
-                    )}
+                          width:
+                            "100%",
+
+                          height:
+                            "auto",
+                        }}
+                      />
+
+                      {renderSignatureBox(
+                        pageNumber
+                      )}
+                    </div>
                   </div>
-                </div>
-              )
-            }
-          )}
+                )
+              }
+            )}
+          </div>
         </div>
-      </div>
-    )
-  }
-
-  const renderImagePreview = () => {
-    if (
-      !filePreview ||
-      !file?.type.startsWith(
-        "image/"
       )
-    ) {
-      return null
     }
 
-    return (
-      <div
-        style={{
-          height: "650px",
-          overflowY: "auto",
-          background:
-            "#d1d5db",
-          padding: "24px",
-        }}
-      >
-        <div
-          style={{
-            textAlign: "center",
-            marginBottom: "8px",
-            fontWeight: "600",
-          }}
-        >
-          Trang 1 / 1
-        </div>
+  const renderImagePreview =
+    () => {
+      if (
+        !filePreview ||
+        !file?.type.startsWith(
+          "image/"
+        )
+      ) {
+        return null
+      }
 
+      return (
         <div
-          ref={(element) => {
-            pageRefs.current[1] =
-              element
-          }}
-          onClick={(event) =>
-            handlePageClick(
-              event,
-              1
-            )
-          }
           style={{
-            position: "relative",
-            maxWidth: "760px",
-            margin: "0 auto",
-            background: "#ffffff",
-            cursor: "crosshair",
+            height:
+              "650px",
+
+            overflowY:
+              "auto",
+
+            background:
+              "#d1d5db",
+
+            padding:
+              "24px",
           }}
         >
-          <img
-            src={filePreview}
-            alt="Xem trước tài liệu"
-            style={{
-              width: "100%",
-              display: "block",
+          <div
+            ref={(element) => {
+              pageRefs.current[
+                1
+              ] = element
             }}
-          />
+            onClick={(event) =>
+              handlePageClick(
+                event,
+                1
+              )
+            }
+            style={{
+              position:
+                "relative",
 
-          {renderSignatureBox(1)}
+              maxWidth:
+                "760px",
+
+              margin:
+                "0 auto",
+
+              background:
+                "#ffffff",
+
+              cursor:
+                "crosshair",
+            }}
+          >
+            <img
+              src={
+                filePreview
+              }
+              alt="Xem trước tài liệu"
+              style={{
+                width:
+                  "100%",
+                display:
+                  "block",
+              }}
+            />
+
+            {renderSignatureBox(
+              1
+            )}
+          </div>
         </div>
-      </div>
-    )
-  }
+      )
+    }
 
   return (
     <div>
@@ -1104,8 +1564,8 @@ function ApprovalCreatePage() {
         </h1>
 
         <p>
-          Thiết lập hồ sơ, luồng xử lý
-          và vị trí ký trên tài liệu.
+          Thiết lập hồ sơ, luồng xử lý và
+          vị trí ký trên tài liệu.
         </p>
       </div>
 
@@ -1115,9 +1575,11 @@ function ApprovalCreatePage() {
         </div>
       )}
 
+      {/* 1. THÔNG TIN */}
+
       <div className="detail-card">
         <h2>
-          1. Thông tin hồ sơ
+          1. Thông tin hồ sơ trình ký
         </h2>
 
         <div className="upload-form">
@@ -1138,6 +1600,77 @@ function ApprovalCreatePage() {
             />
           </div>
 
+          <div className="detail-grid">
+            <div className="form-group">
+              <label>
+                Loại tài liệu *
+              </label>
+
+              <select
+                value={
+                  documentType
+                }
+                onChange={(e) =>
+                  setDocumentType(
+                    e.target.value
+                  )
+                }
+              >
+                <option value="">
+                  Chọn loại tài liệu
+                </option>
+
+                {documentCategories.map(
+                  (
+                    category
+                  ) => (
+                    <option
+                      key={
+                        category.id ||
+                        category.name
+                      }
+                      value={
+                        category.name
+                      }
+                    >
+                      {
+                        category.name
+                      }
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>
+                Mức độ ưu tiên *
+              </label>
+
+              <select
+                value={
+                  priority
+                }
+                onChange={(e) =>
+                  setPriority(
+                    e.target.value
+                  )
+                }
+              >
+                {priorityOptions.map(
+                  (item) => (
+                    <option
+                      key={item}
+                      value={item}
+                    >
+                      {item}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+          </div>
+
           <div className="form-group">
             <label>
               Nội dung trình ký
@@ -1145,7 +1678,9 @@ function ApprovalCreatePage() {
 
             <textarea
               rows="4"
-              value={description}
+              value={
+                description
+              }
               placeholder="Nhập nội dung trình ký..."
               onChange={(e) =>
                 setDescription(
@@ -1189,164 +1724,460 @@ function ApprovalCreatePage() {
         </div>
       </div>
 
-      <div className="detail-card">
-        <h2>
-          2. Thiết lập luồng trình ký
-        </h2>
-
-        <div className="detail-grid">
-          <div className="form-group">
-            <label>
-              Bước 1 - Người phê duyệt *
-            </label>
-
-            <select
-              value={approver}
-              onChange={(e) =>
-                setApprover(
-                  e.target.value
-                )
-              }
-            >
-              <option value="">
-                Chọn người phê duyệt
-              </option>
-
-              {prototypeUsers.map(
-                (user) => (
-                  <option
-                    key={user}
-                    value={user}
-                  >
-                    {user}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>
-              Bước 2 - Người ký *
-            </label>
-
-            <select
-              value={signer}
-              onChange={(e) =>
-                setSigner(
-                  e.target.value
-                )
-              }
-            >
-              <option value="">
-                Chọn người ký
-              </option>
-
-              {prototypeUsers.map(
-                (user) => (
-                  <option
-                    key={user}
-                    value={user}
-                  >
-                    {user}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
-        </div>
-
-        {(approver || signer) && (
-          <div className="settings-note">
-            Người khởi tạo →{" "}
-            <strong>
-              {approver ||
-                "Chưa chọn"}
-            </strong>{" "}
-            phê duyệt →{" "}
-            <strong>
-              {signer ||
-                "Chưa chọn"}
-            </strong>{" "}
-            ký → Hoàn tất
-          </div>
-        )}
-      </div>
+      {/* 2. LUỒNG */}
 
       <div className="detail-card">
-        <h2>
-          3. Loại / phương thức ký
-        </h2>
+        <div
+          style={{
+            display:
+              "flex",
 
-        <div className="form-group">
-          <label>
-            Phương thức ký *
-          </label>
+            justifyContent:
+              "space-between",
 
-          <select
-            value={
-              signatureMethod
-            }
-            onChange={(e) =>
-              setSignatureMethod(
-                e.target.value
-              )
+            alignItems:
+              "center",
+
+            gap:
+              "12px",
+          }}
+        >
+          <div>
+            <h2>
+              2. Thiết lập luồng trình ký
+            </h2>
+
+            <p
+              style={{
+                color:
+                  "#6b7280",
+              }}
+            >
+              Tạo bước và thêm người xử
+              lý cho từng bước.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="primary-button"
+            onClick={
+              handleAddStep
             }
           >
-            <option value="">
-              Chọn phương thức ký
-            </option>
+            + Thêm bước
+          </button>
+        </div>
 
-            {signatureMethods.map(
-              (item) => (
-                <option
-                  key={item.id}
-                  value={item.name}
+        {steps.map(
+          (
+            step,
+            stepIndex
+          ) => (
+            <div
+              key={
+                step.id
+              }
+              style={{
+                border:
+                  "1px solid #dbe3ee",
+
+                borderRadius:
+                  "10px",
+
+                padding:
+                  "18px",
+
+                marginTop:
+                  "18px",
+
+                background:
+                  "#f9fbfd",
+              }}
+            >
+              <div
+                style={{
+                  display:
+                    "flex",
+
+                  justifyContent:
+                    "space-between",
+
+                  alignItems:
+                    "center",
+
+                  marginBottom:
+                    "16px",
+                }}
+              >
+                <strong>
+                  Bước{" "}
+                  {stepIndex +
+                    1}
+                </strong>
+
+                <button
+                  type="button"
+                  className="reject-button"
+                  onClick={() =>
+                    handleRemoveStep(
+                      step.id
+                    )
+                  }
                 >
-                  {item.name}
-                </option>
-              )
-            )}
-          </select>
+                  Xóa bước
+                </button>
+              </div>
+
+              <div className="detail-grid">
+                <div className="form-group">
+                  <label>
+                    Tên bước *
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="Ví dụ: Kiểm tra nội dung"
+                    value={
+                      step.name
+                    }
+                    onChange={(e) =>
+                      handleStepChange(
+                        step.id,
+                        "name",
+                        e.target
+                          .value
+                      )
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    Loại bước *
+                  </label>
+
+                  <select
+                    value={
+                      step.flowType
+                    }
+                    onChange={(e) =>
+                      handleStepChange(
+                        step.id,
+                        "flowType",
+                        e.target
+                          .value
+                      )
+                    }
+                  >
+                    {flowTypeOptions.map(
+                      (
+                        item
+                      ) => (
+                        <option
+                          key={
+                            item
+                          }
+                          value={
+                            item
+                          }
+                        >
+                          {
+                            item
+                          }
+                        </option>
+                      )
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display:
+                    "flex",
+
+                  justifyContent:
+                    "space-between",
+
+                  alignItems:
+                    "center",
+
+                  marginTop:
+                    "8px",
+                }}
+              >
+                <strong>
+                  Người xử lý
+                </strong>
+
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() =>
+                    handleAddHandler(
+                      step.id
+                    )
+                  }
+                >
+                  + Thêm người xử lý
+                </button>
+              </div>
+
+              {step.handlers.map(
+                (
+                  handler,
+                  handlerIndex
+                ) => (
+                  <div
+                    key={
+                      handler.id
+                    }
+                    style={{
+                      borderTop:
+                        "1px solid #e5e7eb",
+
+                      marginTop:
+                        "14px",
+
+                      paddingTop:
+                        "14px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display:
+                          "flex",
+
+                        justifyContent:
+                          "space-between",
+
+                        marginBottom:
+                          "10px",
+                      }}
+                    >
+                      <span>
+                        Người xử lý{" "}
+                        {handlerIndex +
+                          1}
+                      </span>
+
+                      <button
+                        type="button"
+                        className="reject-button"
+                        onClick={() =>
+                          handleRemoveHandler(
+                            step.id,
+                            handler.id
+                          )
+                        }
+                      >
+                        Xóa
+                      </button>
+                    </div>
+
+                    <div className="detail-grid">
+                      <div className="form-group">
+                        <label>
+                          Chọn người *
+                        </label>
+
+                        <select
+                          value={
+                            handler.user
+                          }
+                          onChange={(e) =>
+                            handleHandlerChange(
+                              step.id,
+                              handler.id,
+                              "user",
+                              e.target
+                                .value
+                            )
+                          }
+                        >
+                          <option value="">
+                            Chọn người xử lý
+                          </option>
+
+                          {prototypeUsers.map(
+                            (
+                              user
+                            ) => (
+                              <option
+                                key={
+                                  user
+                                }
+                                value={
+                                  user
+                                }
+                              >
+                                {
+                                  user
+                                }
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
+
+                      <div className="form-group">
+                        <label>
+                          Loại xử lý *
+                        </label>
+
+                        <select
+                          value={
+                            handler.actionType
+                          }
+                          onChange={(e) =>
+                            handleHandlerChange(
+                              step.id,
+                              handler.id,
+                              "actionType",
+                              e.target
+                                .value
+                            )
+                          }
+                        >
+                          {actionTypeOptions.map(
+                            (
+                              item
+                            ) => (
+                              <option
+                                key={
+                                  item
+                                }
+                                value={
+                                  item
+                                }
+                              >
+                                {
+                                  item
+                                }
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
+                    </div>
+
+                    {handler.actionType ===
+                      "Ký duyệt" && (
+                      <div className="form-group">
+                        <label>
+                          Phương thức ký *
+                        </label>
+
+                        <select
+                          value={
+                            handler.signatureMethod
+                          }
+                          onChange={(e) =>
+                            handleHandlerChange(
+                              step.id,
+                              handler.id,
+                              "signatureMethod",
+                              e.target
+                                .value
+                            )
+                          }
+                        >
+                          <option value="">
+                            Chọn phương thức ký
+                          </option>
+
+                          {signatureMethodOptions.map(
+                            (
+                              method
+                            ) => (
+                              <option
+                                key={
+                                  method
+                                }
+                                value={
+                                  method
+                                }
+                              >
+                                {
+                                  method
+                                }
+                              </option>
+                            )
+                          )}
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )
+              )}
+            </div>
+          )
+        )}
+
+        <div
+          className="settings-note"
+          style={{
+            marginTop:
+              "16px",
+          }}
+        >
+          <strong>
+            Người ký duyệt chính:
+          </strong>{" "}
+          {primarySigner ||
+            "Chưa chọn"}
+          <br />
+          <strong>
+            Phương thức:
+          </strong>{" "}
+          {primarySignatureMethod ||
+            "Chưa chọn"}
         </div>
       </div>
 
+      {/* 3. VỊ TRÍ KÝ */}
+
       <div className="detail-card">
         <h2>
-          4. Thiết lập vị trí ký
+          3. Thiết lập vị trí ký
         </h2>
 
         <p
           style={{
-            color: "#6b7280",
+            color:
+              "#6b7280",
           }}
         >
-          Cuộn tới trang muốn ký rồi{" "}
+          Chọn người có loại xử lý{" "}
           <strong>
-            bấm trực tiếp vào vị trí cần ký
-          </strong>
-          . Sau đó có thể kéo ô{" "}
-          <strong>
-            Vùng ký
+            Ký duyệt
           </strong>{" "}
-          để chỉnh lại vị trí.
+          trước, sau đó bấm vào vị trí cần
+          ký trên tài liệu.
         </p>
 
         {!file && (
           <div
             style={{
-              padding: "50px",
-              textAlign: "center",
-              background:
-                "#f9fafb",
+              padding:
+                "50px",
+
+              textAlign:
+                "center",
+
               border:
                 "1px dashed #d1d5db",
-              borderRadius: "10px",
-              color: "#6b7280",
+
+              borderRadius:
+                "10px",
+
+              color:
+                "#6b7280",
             }}
           >
-            Hãy chọn file ở bước 1 để
-            xem trước tài liệu.
+            Hãy chọn file ở phần thông tin
+            hồ sơ.
           </div>
         )}
 
@@ -1363,14 +2194,17 @@ function ApprovalCreatePage() {
           <div
             className="settings-note"
             style={{
-              marginTop: "16px",
+              marginTop:
+                "16px",
             }}
           >
             <strong>
               Vị trí ký:
             </strong>{" "}
             Trang{" "}
-            {signaturePosition.page}
+            {
+              signaturePosition.page
+            }
             {" - "}
             X{" "}
             {signaturePosition.x.toFixed(
@@ -1387,6 +2221,8 @@ function ApprovalCreatePage() {
         )}
       </div>
 
+      {/* KIỂM TRA */}
+
       <div className="detail-card">
         <h2>
           Kiểm tra trước khi tạo
@@ -1395,22 +2231,42 @@ function ApprovalCreatePage() {
         <div className="detail-grid">
           <div>
             <span className="detail-label">
-              Người phê duyệt
+              Loại tài liệu
             </span>
 
             <p>
-              {approver ||
+              {documentType ||
                 "Chưa chọn"}
             </p>
           </div>
 
           <div>
             <span className="detail-label">
-              Người ký
+              Mức độ ưu tiên
             </span>
 
             <p>
-              {signer ||
+              {priority}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Số bước
+            </span>
+
+            <p>
+              {steps.length}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Người ký duyệt
+            </span>
+
+            <p>
+              {primarySigner ||
                 "Chưa chọn"}
             </p>
           </div>
@@ -1421,7 +2277,7 @@ function ApprovalCreatePage() {
             </span>
 
             <p>
-              {signatureMethod ||
+              {primarySignatureMethod ||
                 "Chưa chọn"}
             </p>
           </div>
@@ -1433,10 +2289,24 @@ function ApprovalCreatePage() {
 
             <p>
               Trang{" "}
-              {signaturePosition.page}
+              {
+                signaturePosition.page
+              }
             </p>
           </div>
         </div>
+
+        {error && (
+          <div
+            className="form-error"
+            style={{
+              marginTop:
+                "16px",
+            }}
+          >
+            {error}
+          </div>
+        )}
 
         <div className="form-actions">
           <button
@@ -1455,7 +2325,9 @@ function ApprovalCreatePage() {
             onClick={
               handleCreate
             }
-            disabled={saving}
+            disabled={
+              saving
+            }
           >
             {saving
               ? "Đang tạo..."

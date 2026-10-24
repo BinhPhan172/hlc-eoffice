@@ -1,4 +1,5 @@
 import { useState } from "react"
+
 import {
   useNavigate,
   useParams,
@@ -20,23 +21,38 @@ function ApprovalDetailPage() {
       "hlcPrototypeUser"
     ) || "Nguyễn Văn A"
 
-  const [currentUser, setCurrentUser] =
-    useState(savedPrototypeUser)
+  const [
+    currentUser,
+    setCurrentUser,
+  ] = useState(
+    savedPrototypeUser
+  )
 
   const defaultApprovals = [
     {
       id: "TK-0001",
-      name: "Đề nghị mua sắm thiết bị",
+      name:
+        "Đề nghị mua sắm thiết bị",
       description:
         "Đề nghị phê duyệt kế hoạch mua sắm thiết bị phục vụ công việc.",
-      creator: "Nguyễn Văn A",
-      approver: "Trần Thị B",
-      signer: "Lê Văn C",
-      updatedAt: "22/10/2026",
-      status: "Chờ phê duyệt",
+      documentType:
+        "Khác",
+      priority:
+        "Bình thường",
+      creator:
+        "Nguyễn Văn A",
+      approver:
+        "Trần Thị B",
+      signer:
+        "Lê Văn C",
+      updatedAt:
+        "22/10/2026",
+      status:
+        "Chờ phê duyệt",
       fileName:
         "de-nghi-mua-sam-thiet-bi.pdf",
-      fileSize: "2.1 MB",
+      fileSize:
+        "2.1 MB",
       fileData: "",
       signatureMethod: "",
       signaturePosition: null,
@@ -48,16 +64,27 @@ function ApprovalDetailPage() {
         "Quyết định điều động nhân sự",
       description:
         "Hồ sơ quyết định điều động nhân sự.",
-      creator: "Trần Thị B",
-      approver: "Lê Văn C",
-      signer: "Phạm Văn D",
-      updatedAt: "21/10/2026",
-      status: "Chờ ký",
+      documentType:
+        "Khác",
+      priority:
+        "Cao",
+      creator:
+        "Trần Thị B",
+      approver:
+        "Lê Văn C",
+      signer:
+        "Phạm Văn D",
+      updatedAt:
+        "21/10/2026",
+      status:
+        "Chờ ký",
       fileName:
         "quyet-dinh-dieu-dong.pdf",
-      fileSize: "1.5 MB",
+      fileSize:
+        "1.5 MB",
       fileData: "",
-      signatureMethod: "",
+      signatureMethod:
+        "VNPT Smart CA",
       signaturePosition: null,
     },
 
@@ -67,16 +94,27 @@ function ApprovalDetailPage() {
         "Đề xuất kế hoạch đào tạo",
       description:
         "Đề xuất kế hoạch đào tạo nội bộ.",
-      creator: "Lê Văn C",
-      approver: "Phạm Văn D",
-      signer: "Phạm Văn D",
-      updatedAt: "20/10/2026",
-      status: "Hoàn tất",
+      documentType:
+        "Khác",
+      priority:
+        "Bình thường",
+      creator:
+        "Lê Văn C",
+      approver:
+        "Phạm Văn D",
+      signer:
+        "Phạm Văn D",
+      updatedAt:
+        "20/10/2026",
+      status:
+        "Hoàn tất",
       fileName:
         "ke-hoach-dao-tao.pdf",
-      fileSize: "3.0 MB",
+      fileSize:
+        "3.0 MB",
       fileData: "",
-      signatureMethod: "SmartCA",
+      signatureMethod:
+        "VNPT Smart CA",
       signaturePosition: null,
     },
   ]
@@ -142,10 +180,13 @@ function ApprovalDetailPage() {
         : ""
     )
 
-  const [comments, setComments] =
-    useState(
-      savedComments[id] || []
-    )
+  const [
+    comments,
+    setComments,
+  ] = useState(
+    savedComments[id] ||
+      []
+  )
 
   const [
     commentText,
@@ -157,10 +198,13 @@ function ApprovalDetailPage() {
     setRejectReason,
   ] = useState("")
 
-  const [delegate, setDelegate] =
-    useState(
-      savedDelegates[id] || ""
-    )
+  const [
+    delegate,
+    setDelegate,
+  ] = useState(
+    savedDelegates[id] ||
+      ""
+  )
 
   const [
     selectedDelegate,
@@ -191,7 +235,9 @@ function ApprovalDetailPage() {
 
         <button
           onClick={() =>
-            navigate("/approval")
+            navigate(
+              "/approval"
+            )
           }
         >
           ← Quay lại danh sách
@@ -200,29 +246,133 @@ function ApprovalDetailPage() {
     )
   }
 
+  const getWorkflow = () => {
+    if (
+      Array.isArray(
+        approval.approvalFlow
+      ) &&
+      approval.approvalFlow
+        .length > 0 &&
+      approval.approvalFlow.some(
+        (step) =>
+          Array.isArray(
+            step.handlers
+          )
+      )
+    ) {
+      return approval.approvalFlow
+    }
+
+    const legacySteps = []
+
+    if (
+      approval.approver
+    ) {
+      legacySteps.push({
+        id:
+          "legacy-approval",
+        step: 1,
+        name:
+          "Phê duyệt",
+        flowType:
+          "Tuần tự",
+        handlers: [
+          {
+            id:
+              "legacy-approver",
+            user:
+              approval.approver,
+            actionType:
+              "Kiểm soát",
+            signatureMethod:
+              "",
+          },
+        ],
+      })
+    }
+
+    if (
+      approval.signer
+    ) {
+      legacySteps.push({
+        id:
+          "legacy-sign",
+        step:
+          legacySteps.length +
+          1,
+        name:
+          "Ký duyệt",
+        flowType:
+          "Tuần tự",
+        handlers: [
+          {
+            id:
+              "legacy-signer",
+            user:
+              approval.signer,
+            actionType:
+              "Ký duyệt",
+            signatureMethod:
+              approval.signatureMethod ||
+              "",
+          },
+        ],
+      })
+    }
+
+    return legacySteps
+  }
+
+  const workflow =
+    getWorkflow()
+
+  const allHandlers =
+    workflow.flatMap(
+      (step) =>
+        step.handlers ||
+        []
+    )
+
+  const workflowApprover =
+    allHandlers.find(
+      (handler) =>
+        handler.actionType !==
+          "Ký duyệt" &&
+        handler.user
+    )?.user || ""
+
+  const workflowSignerHandler =
+    allHandlers.find(
+      (handler) =>
+        handler.actionType ===
+          "Ký duyệt" &&
+        handler.user
+    )
+
+  const workflowSigner =
+    workflowSignerHandler
+      ?.user || ""
+
+  const baseApprover =
+    approval.approver ||
+    workflowApprover ||
+    workflowSigner
+
   const baseSigner =
     approval.signer ||
-    approval.approver
+    workflowSigner ||
+    baseApprover
 
   const currentSigner =
-    delegate || baseSigner
+    delegate ||
+    baseSigner
 
   const signature =
     signatures[id]
 
-  const handleChangePrototypeUser = (
-    event
-  ) => {
-    const user =
-      event.target.value
-
-    setCurrentUser(user)
-
-    localStorage.setItem(
-      "hlcPrototypeUser",
-      user
-    )
-  }
+  // =========================
+  // STORAGE
+  // =========================
 
   const saveStatus = (
     newStatus
@@ -239,10 +389,14 @@ function ApprovalDetailPage() {
 
     localStorage.setItem(
       "hlcApprovalStatus",
-      JSON.stringify(current)
+      JSON.stringify(
+        current
+      )
     )
 
-    setStatus(newStatus)
+    setStatus(
+      newStatus
+    )
   }
 
   const saveComments = (
@@ -260,39 +414,66 @@ function ApprovalDetailPage() {
 
     localStorage.setItem(
       "hlcApprovalComments",
-      JSON.stringify(current)
+      JSON.stringify(
+        current
+      )
     )
 
-    setComments(newComments)
+    setComments(
+      newComments
+    )
+  }
+
+  // =========================
+  // ACTIONS
+  // =========================
+
+  const handleChangePrototypeUser = (
+    event
+  ) => {
+    const user =
+      event.target.value
+
+    setCurrentUser(
+      user
+    )
+
+    localStorage.setItem(
+      "hlcPrototypeUser",
+      user
+    )
   }
 
   const handleApprove = () => {
-    saveStatus("Chờ ký")
-
-    const newComment = {
-      author: currentUser,
-
-      content:
-        "Đã phê duyệt hồ sơ.",
-
-      date:
-        new Date().toLocaleString(
-          "vi-VN"
-        ),
-    }
+    saveStatus(
+      "Chờ ký"
+    )
 
     saveComments([
       ...comments,
-      newComment,
+      {
+        author:
+          currentUser,
+        content:
+          "Đã phê duyệt hồ sơ.",
+        date:
+          new Date().toLocaleString(
+            "vi-VN"
+          ),
+      },
     ])
   }
 
   const handleReject = () => {
-    if (!rejectReason.trim()) {
+    if (
+      !rejectReason.trim()
+    ) {
       return
     }
 
-    saveStatus("Từ chối")
+    saveStatus(
+      "Từ chối"
+    )
 
     const currentReasons =
       JSON.parse(
@@ -311,55 +492,57 @@ function ApprovalDetailPage() {
       )
     )
 
-    const newComment = {
-      author: currentUser,
-
-      content:
-        `Từ chối: ${rejectReason.trim()}`,
-
-      date:
-        new Date().toLocaleString(
-          "vi-VN"
-        ),
-    }
-
     saveComments([
       ...comments,
-      newComment,
+      {
+        author:
+          currentUser,
+        content:
+          `Từ chối: ${rejectReason.trim()}`,
+        date:
+          new Date().toLocaleString(
+            "vi-VN"
+          ),
+      },
     ])
 
     setRejectReason("")
-    setShowRejectForm(false)
+    setShowRejectForm(
+      false
+    )
   }
 
   const handleAddComment = () => {
-    if (!commentText.trim()) {
+    if (
+      !commentText.trim()
+    ) {
       return
-    }
-
-    const newComment = {
-      author: currentUser,
-
-      content:
-        commentText.trim(),
-
-      date:
-        new Date().toLocaleString(
-          "vi-VN"
-        ),
     }
 
     saveComments([
       ...comments,
-      newComment,
+      {
+        author:
+          currentUser,
+        content:
+          commentText.trim(),
+        date:
+          new Date().toLocaleString(
+            "vi-VN"
+          ),
+      },
     ])
 
     setCommentText("")
-    setShowCommentForm(false)
+    setShowCommentForm(
+      false
+    )
   }
 
   const handleDelegate = () => {
-    if (!selectedDelegate) {
+    if (
+      !selectedDelegate
+    ) {
       return
     }
 
@@ -375,32 +558,36 @@ function ApprovalDetailPage() {
 
     localStorage.setItem(
       "hlcApprovalDelegates",
-      JSON.stringify(current)
+      JSON.stringify(
+        current
+      )
     )
 
     setDelegate(
       selectedDelegate
     )
 
-    const newComment = {
-      author: currentUser,
-
-      content:
-        `Đã ủy quyền ký cho ${selectedDelegate}.`,
-
-      date:
-        new Date().toLocaleString(
-          "vi-VN"
-        ),
-    }
-
     saveComments([
       ...comments,
-      newComment,
+      {
+        author:
+          currentUser,
+        content:
+          `Đã ủy quyền ký cho ${selectedDelegate}.`,
+        date:
+          new Date().toLocaleString(
+            "vi-VN"
+          ),
+      },
     ])
 
-    setSelectedDelegate("")
-    setShowDelegateForm(false)
+    setSelectedDelegate(
+      ""
+    )
+
+    setShowDelegateForm(
+      false
+    )
   }
 
   const handleWithdraw = () => {
@@ -413,37 +600,39 @@ function ApprovalDetailPage() {
       return
     }
 
-    saveStatus("Đã thu hồi")
-
-    const newComment = {
-      author: currentUser,
-
-      content:
-        "Đã thu hồi hồ sơ trình ký.",
-
-      date:
-        new Date().toLocaleString(
-          "vi-VN"
-        ),
-    }
+    saveStatus(
+      "Đã thu hồi"
+    )
 
     saveComments([
       ...comments,
-      newComment,
+      {
+        author:
+          currentUser,
+        content:
+          "Đã thu hồi hồ sơ trình ký.",
+        date:
+          new Date().toLocaleString(
+            "vi-VN"
+          ),
+      },
     ])
   }
 
   const handleDownload = () => {
-    if (!approval.fileData) {
+    if (
+      !approval.fileData
+    ) {
       window.alert(
-        "File mẫu hoặc hồ sơ cũ chưa có dữ liệu tải xuống. Hãy tạo một hồ sơ trình ký mới để test chức năng này."
+        "File mẫu hoặc hồ sơ cũ chưa có dữ liệu tải xuống."
       )
-
       return
     }
 
     const link =
-      document.createElement("a")
+      document.createElement(
+        "a"
+      )
 
     link.href =
       approval.fileData
@@ -463,61 +652,77 @@ function ApprovalDetailPage() {
     )
   }
 
-  const getStatusClass = () => {
-    if (
-      status === "Hoàn tất"
-    ) {
-      return "status processing"
-    }
-
-    if (
-      status === "Chờ ký"
-    ) {
-      return "status waiting"
-    }
-
-    if (
-      status === "Từ chối" ||
-      status === "Đã thu hồi"
-    ) {
-      return "status rejected"
-    }
-
-    return "status pending"
-  }
+  // =========================
+  // PERMISSION
+  // =========================
 
   const canWithdraw =
     currentUser ===
       approval.creator &&
-    status !== "Hoàn tất" &&
-    status !== "Từ chối" &&
-    status !== "Đã thu hồi"
+    status !==
+      "Hoàn tất" &&
+    status !==
+      "Từ chối" &&
+    status !==
+      "Đã thu hồi"
 
   const canApprove =
     status ===
       "Chờ phê duyệt" &&
     currentUser ===
-      approval.approver
+      baseApprover
 
   const canReject =
     canApprove
 
   const canDelegate =
-    status === "Chờ ký" &&
+    status ===
+      "Chờ ký" &&
     !delegate &&
     currentUser ===
       baseSigner
 
   const canSign =
-    status === "Chờ ký" &&
+    status ===
+      "Chờ ký" &&
     currentUser ===
       currentSigner
+
+  const getStatusClass =
+    () => {
+      if (
+        status ===
+        "Hoàn tất"
+      ) {
+        return "status processing"
+      }
+
+      if (
+        status ===
+        "Chờ ký"
+      ) {
+        return "status waiting"
+      }
+
+      if (
+        status ===
+          "Từ chối" ||
+        status ===
+          "Đã thu hồi"
+      ) {
+        return "status rejected"
+      }
+
+      return "status pending"
+    }
 
   return (
     <div>
       <button
         onClick={() =>
-          navigate("/approval")
+          navigate(
+            "/approval"
+          )
         }
       >
         ← Quay lại
@@ -537,9 +742,9 @@ function ApprovalDetailPage() {
 
         <div className="detail-action-buttons">
           {status !==
-            "Đã thu hồi" &&
+            "Hoàn tất" &&
             status !==
-              "Hoàn tất" && (
+              "Đã thu hồi" && (
               <button
                 className="secondary-button"
                 onClick={() =>
@@ -615,18 +820,12 @@ function ApprovalDetailPage() {
         </div>
       </div>
 
-      {/* NGƯỜI DÙNG MÔ PHỎNG */}
-
-      {status !== "Hoàn tất" && (
+      {status !==
+        "Hoàn tất" && (
         <div className="detail-card">
           <h2>
             Người dùng mô phỏng
           </h2>
-
-          <p>
-            Chọn người đang thao tác để
-            kiểm thử luồng trình ký.
-          </p>
 
           <div className="form-group">
             <label>
@@ -634,7 +833,9 @@ function ApprovalDetailPage() {
             </label>
 
             <select
-              value={currentUser}
+              value={
+                currentUser
+              }
               onChange={
                 handleChangePrototypeUser
               }
@@ -654,17 +855,15 @@ function ApprovalDetailPage() {
         </div>
       )}
 
-      {/* THÔNG BÁO */}
-
       {status ===
         "Chờ phê duyệt" &&
         !canApprove && (
           <div className="settings-note">
             Hồ sơ hiện đang chờ{" "}
             <strong>
-              {approval.approver}
+              {baseApprover}
             </strong>{" "}
-            phê duyệt.
+            xử lý bước phê duyệt.
           </div>
         )}
 
@@ -676,7 +875,7 @@ function ApprovalDetailPage() {
             <strong>
               {currentSigner}
             </strong>{" "}
-            ký.
+            ký duyệt.
           </div>
         )}
 
@@ -688,8 +887,6 @@ function ApprovalDetailPage() {
           </div>
         )}
 
-      {/* COMMENT */}
-
       {showCommentForm && (
         <div className="detail-card">
           <h2>
@@ -697,14 +894,12 @@ function ApprovalDetailPage() {
           </h2>
 
           <div className="form-group">
-            <label>
-              Nội dung
-            </label>
-
             <textarea
               rows="4"
+              value={
+                commentText
+              }
               placeholder="Nhập ý kiến..."
-              value={commentText}
               onChange={(e) =>
                 setCommentText(
                   e.target.value
@@ -737,8 +932,6 @@ function ApprovalDetailPage() {
         </div>
       )}
 
-      {/* TỪ CHỐI */}
-
       {showRejectForm && (
         <div className="detail-card">
           <h2>
@@ -752,8 +945,9 @@ function ApprovalDetailPage() {
 
             <textarea
               rows="4"
-              placeholder="Nhập lý do từ chối..."
-              value={rejectReason}
+              value={
+                rejectReason
+              }
               onChange={(e) =>
                 setRejectReason(
                   e.target.value
@@ -786,8 +980,6 @@ function ApprovalDetailPage() {
         </div>
       )}
 
-      {/* ỦY QUYỀN */}
-
       {showDelegateForm && (
         <div className="detail-card">
           <h2>
@@ -810,7 +1002,7 @@ function ApprovalDetailPage() {
               }
             >
               <option value="">
-                Chọn người được ủy quyền
+                Chọn người
               </option>
 
               {prototypeUsers
@@ -867,7 +1059,7 @@ function ApprovalDetailPage() {
           </div>
         )}
 
-      {/* THÔNG TIN HỒ SƠ */}
+      {/* THÔNG TIN */}
 
       <div className="detail-card">
         <h2>
@@ -882,6 +1074,40 @@ function ApprovalDetailPage() {
 
             <p>
               {approval.name}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Người khởi tạo
+            </span>
+
+            <p>
+              {
+                approval.creator
+              }
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Loại tài liệu
+            </span>
+
+            <p>
+              {approval.documentType ||
+                "Chưa có thông tin"}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Mức độ ưu tiên
+            </span>
+
+            <p>
+              {approval.priority ||
+                "Bình thường"}
             </p>
           </div>
 
@@ -903,73 +1129,150 @@ function ApprovalDetailPage() {
 
           <div>
             <span className="detail-label">
-              Người khởi tạo
-            </span>
-
-            <p>
-              {approval.creator}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Người phê duyệt
-            </span>
-
-            <p>
-              {approval.approver ||
-                "Chưa xác định"}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Người ký ban đầu
-            </span>
-
-            <p>
-              {baseSigner ||
-                "Chưa xác định"}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Người ký hiện tại
-            </span>
-
-            <p>
-              <strong>
-                {currentSigner ||
-                  "Chưa xác định"}
-              </strong>
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Người được ủy quyền
-            </span>
-
-            <p>
-              {delegate ||
-                "Chưa có"}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
               Ngày cập nhật
             </span>
 
             <p>
-              {approval.updatedAt}
+              {
+                approval.updatedAt
+              }
             </p>
           </div>
         </div>
       </div>
 
-      {/* THIẾT LẬP KÝ */}
+      {/* LUỒNG */}
+
+      <div className="detail-card">
+        <h2>
+          Luồng trình ký
+        </h2>
+
+        {workflow.map(
+          (
+            step,
+            index
+          ) => (
+            <div
+              key={
+                step.id ||
+                index
+              }
+              style={{
+                border:
+                  "1px solid #dbe3ee",
+
+                borderRadius:
+                  "10px",
+
+                padding:
+                  "16px",
+
+                marginTop:
+                  index === 0
+                    ? 0
+                    : "14px",
+
+                background:
+                  "#f9fbfd",
+              }}
+            >
+              <div className="detail-grid">
+                <div>
+                  <span className="detail-label">
+                    Bước{" "}
+                    {index +
+                      1}
+                  </span>
+
+                  <p>
+                    <strong>
+                      {step.name ||
+                        `Bước ${
+                          index +
+                          1
+                        }`}
+                    </strong>
+                  </p>
+                </div>
+
+                <div>
+                  <span className="detail-label">
+                    Loại bước
+                  </span>
+
+                  <p>
+                    {step.flowType ||
+                      "Tuần tự"}
+                  </p>
+                </div>
+              </div>
+
+              <table
+                style={{
+                  marginTop:
+                    "12px",
+                }}
+              >
+                <thead>
+                  <tr>
+                    <th>
+                      Người xử lý
+                    </th>
+
+                    <th>
+                      Loại xử lý
+                    </th>
+
+                    <th>
+                      Phương thức ký
+                    </th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {(step.handlers ||
+                    []).map(
+                    (
+                      handler
+                    ) => (
+                      <tr
+                        key={
+                          handler.id ||
+                          `${handler.user}-${handler.actionType}`
+                        }
+                      >
+                        <td>
+                          {
+                            handler.user
+                          }
+                        </td>
+
+                        <td>
+                          {
+                            handler.actionType
+                          }
+                        </td>
+
+                        <td>
+                          {handler.actionType ===
+                          "Ký duyệt"
+                            ? handler.signatureMethod ||
+                              approval.signatureMethod ||
+                              "-"
+                            : "-"}
+                        </td>
+                      </tr>
+                    )
+                  )}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+      </div>
+
+      {/* VỊ TRÍ KÝ */}
 
       <div className="detail-card">
         <h2>
@@ -979,54 +1282,53 @@ function ApprovalDetailPage() {
         <div className="detail-grid">
           <div>
             <span className="detail-label">
-              Phương thức ký
+              Người ký duyệt chính
             </span>
 
             <p>
-              {approval.signatureMethod ||
-                "Chưa thiết lập"}
+              {baseSigner ||
+                "-"}
             </p>
           </div>
 
           <div>
             <span className="detail-label">
-              Trang đặt chữ ký
+              Phương thức ký
+            </span>
+
+            <p>
+              {approval.signatureMethod ||
+                workflowSignerHandler
+                  ?.signatureMethod ||
+                "-"}
+            </p>
+          </div>
+
+          <div>
+            <span className="detail-label">
+              Trang ký
             </span>
 
             <p>
               {approval.signaturePosition
                 ?.page
                 ? `Trang ${approval.signaturePosition.page}`
-                : "Chưa thiết lập"}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Vị trí X
-            </span>
-
-            <p>
-              {approval.signaturePosition
-                ?.x !== undefined
-                ? `${Math.round(
-                    approval
-                      .signaturePosition
-                      .x
-                  )}%`
                 : "-"}
             </p>
           </div>
 
           <div>
             <span className="detail-label">
-              Vị trí Y
+              Vị trí
             </span>
 
             <p>
               {approval.signaturePosition
-                ?.y !== undefined
-                ? `${Math.round(
+                ? `X ${Math.round(
+                    approval
+                      .signaturePosition
+                      .x
+                  )}% - Y ${Math.round(
                     approval
                       .signaturePosition
                       .y
@@ -1037,189 +1339,6 @@ function ApprovalDetailPage() {
         </div>
       </div>
 
-      {/* KẾT QUẢ KÝ */}
-
-      {signature && (
-        <div className="detail-card">
-          <h2>
-            Kết quả ký
-          </h2>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns:
-                "minmax(220px, 320px) 1fr",
-              gap: "24px",
-              alignItems: "center",
-            }}
-          >
-            <div
-              style={{
-                border:
-                  "2px solid #2563eb",
-                borderRadius:
-                  "12px",
-                padding:
-                  "22px 18px",
-                textAlign:
-                  "center",
-                background:
-                  "#eff6ff",
-                color:
-                  "#1d4ed8",
-              }}
-            >
-              <div
-                style={{
-                  fontSize:
-                    "34px",
-                  marginBottom:
-                    "8px",
-                }}
-              >
-                ✓
-              </div>
-
-              <strong
-                style={{
-                  display:
-                    "block",
-                  fontSize:
-                    "18px",
-                  marginBottom:
-                    "8px",
-                }}
-              >
-                ĐÃ KÝ SỐ
-              </strong>
-
-              <div>
-                {signature.signer}
-              </div>
-
-              <div
-                style={{
-                  fontSize:
-                    "13px",
-                  marginTop:
-                    "5px",
-                }}
-              >
-                {signature.method}
-              </div>
-
-              <div
-                style={{
-                  fontSize:
-                    "12px",
-                  marginTop:
-                    "8px",
-                  color:
-                    "#475569",
-                }}
-              >
-                {signature.signedAt}
-              </div>
-            </div>
-
-            <div className="detail-grid">
-              <div>
-                <span className="detail-label">
-                  Người ký
-                </span>
-
-                <p>
-                  {signature.signer}
-                </p>
-              </div>
-
-              <div>
-                <span className="detail-label">
-                  Phương thức
-                </span>
-
-                <p>
-                  {signature.method}
-                </p>
-              </div>
-
-              <div>
-                <span className="detail-label">
-                  Trang ký
-                </span>
-
-                <p>
-                  {signature.page
-                    ? `Trang ${signature.page}`
-                    : "-"}
-                </p>
-              </div>
-
-              <div>
-                <span className="detail-label">
-                  Vị trí ký
-                </span>
-
-                <p>
-                  {signature.x !==
-                    undefined &&
-                  signature.y !==
-                    undefined
-                    ? `X ${Math.round(
-                        signature.x
-                      )}% - Y ${Math.round(
-                        signature.y
-                      )}%`
-                    : "-"}
-                </p>
-              </div>
-
-              <div>
-                <span className="detail-label">
-                  Thời gian ký
-                </span>
-
-                <p>
-                  {signature.signedAt}
-                </p>
-              </div>
-
-              <div>
-                <span className="detail-label">
-                  Ủy quyền
-                </span>
-
-                <p>
-                  {signature.delegated
-                    ? "Có"
-                    : "Không"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className="success-message"
-            style={{
-              marginTop:
-                "20px",
-            }}
-          >
-            Hồ sơ đã được ký thành công
-            tại{" "}
-            <strong>
-              trang{" "}
-              {signature.page ||
-                "-"}
-            </strong>
-            .
-          </div>
-        </div>
-      )}
-
-      {/* NỘI DUNG */}
-
       <div className="detail-card">
         <h2>
           Nội dung trình ký
@@ -1227,28 +1346,28 @@ function ApprovalDetailPage() {
 
         <p>
           {approval.description ||
-            "Không có mô tả."}
+            "Không có nội dung."}
         </p>
       </div>
 
-      {/* FILE */}
-
       <div className="detail-card">
         <h2>
-          Tệp trình ký
+          Tài liệu trình ký
         </h2>
 
         <div className="file-row">
           <div>
             <strong>
               {approval.fileName ||
-                "Không có tệp"}
+                "Không có file"}
             </strong>
 
             {approval.fileSize && (
               <p>
                 Dung lượng:{" "}
-                {approval.fileSize}
+                {
+                  approval.fileSize
+                }
               </p>
             )}
           </div>
@@ -1263,18 +1382,12 @@ function ApprovalDetailPage() {
         </div>
       </div>
 
-      {/* Ý KIẾN */}
+      {comments.length > 0 && (
+        <div className="detail-card">
+          <h2>
+            Ý kiến xử lý
+          </h2>
 
-      <div className="detail-card">
-        <h2>
-          Ý kiến xử lý
-        </h2>
-
-        {comments.length === 0 ? (
-          <p>
-            Chưa có ý kiến xử lý.
-          </p>
-        ) : (
           <table>
             <thead>
               <tr>
@@ -1321,8 +1434,147 @@ function ApprovalDetailPage() {
               )}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
+
+      {signature && (
+        <div className="detail-card">
+          <h2>
+            Kết quả ký
+          </h2>
+
+          <div
+            style={{
+              border:
+                "2px solid #16a34a",
+
+              borderRadius:
+                "10px",
+
+              padding:
+                "16px",
+
+              marginBottom:
+                "16px",
+
+              background:
+                "#f0fdf4",
+            }}
+          >
+            <strong
+              style={{
+                color:
+                  "#15803d",
+                fontSize:
+                  "18px",
+              }}
+            >
+              ✓ ĐÃ KÝ SỐ
+            </strong>
+
+            <p>
+              {
+                signature.signer
+              }
+            </p>
+
+            <p>
+              {
+                signature.method
+              }
+            </p>
+
+            <p>
+              {
+                signature.signedAt
+              }
+            </p>
+          </div>
+
+          <div className="detail-grid">
+            <div>
+              <span className="detail-label">
+                Người ký
+              </span>
+
+              <p>
+                {
+                  signature.signer
+                }
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Phương thức
+              </span>
+
+              <p>
+                {
+                  signature.method
+                }
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Trang ký
+              </span>
+
+              <p>
+                Trang{" "}
+                {
+                  signature.page
+                }
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Vị trí
+              </span>
+
+              <p>
+                X{" "}
+                {Math.round(
+                  signature.x ??
+                    0
+                )}
+                % - Y{" "}
+                {Math.round(
+                  signature.y ??
+                    0
+                )}
+                %
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Thời gian ký
+              </span>
+
+              <p>
+                {
+                  signature.signedAt
+                }
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Ủy quyền
+              </span>
+
+              <p>
+                {signature.delegated
+                  ? "Có"
+                  : "Không"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="settings-note">
         <strong>
@@ -1330,11 +1582,8 @@ function ApprovalDetailPage() {
         </strong>
 
         <p>
-          Phần “Đã ký số” hiện là mô phỏng
-          kết quả ký trên giao diện. File PDF
-          gốc chưa được chèn chữ ký thực tế;
-          việc ký thật cần tích hợp dịch vụ
-          VNPT CA SmartCA hoặc USB Token.
+          Thao tác ký hiện đang mô phỏng,
+          chưa tích hợp ký số thực tế.
         </p>
       </div>
     </div>
