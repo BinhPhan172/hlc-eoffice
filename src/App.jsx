@@ -69,6 +69,43 @@ function Layout() {
       getStoredProfile()
     )
 
+  // =========================
+  // TỰ ĐƯA TRANG VỀ ĐẦU
+  // KHI CHUYỂN ROUTE
+  // =========================
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: "auto",
+    })
+
+    const content =
+      document.querySelector(
+        ".content"
+      )
+
+    if (content) {
+      content.scrollTop = 0
+      content.scrollLeft = 0
+    }
+
+    const main =
+      document.querySelector(
+        ".main"
+      )
+
+    if (main) {
+      main.scrollTop = 0
+      main.scrollLeft = 0
+    }
+  }, [location.pathname])
+
+  // =========================
+  // CẬP NHẬT PROFILE
+  // =========================
+
   useEffect(() => {
     const handleProfileUpdated = (
       event
@@ -98,8 +135,7 @@ function Layout() {
   }, [])
 
   const titles = {
-    "/":
-      "Tổng quan",
+    "/": "Tổng quan",
 
     "/documents":
       "Tài liệu",
@@ -272,8 +308,7 @@ function Layout() {
               )
             }
             style={{
-              cursor:
-                "pointer",
+              cursor: "pointer",
             }}
           >
             {profile.fullName}
