@@ -1,12 +1,25 @@
-import { useState } from "react"
 import {
-  useParams,
+  useEffect,
+  useRef,
+  useState,
+} from "react"
+
+import {
   useNavigate,
+  useParams,
 } from "react-router-dom"
+
+import * as pdfjsLib from "pdfjs-dist"
+import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url"
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  pdfWorker
 
 function DocumentDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
+
+  const canvasRefs = useRef({})
 
   const prototypeUsers = [
     "Nguyễn Văn A",
@@ -54,6 +67,9 @@ function DocumentDetailPage() {
       category: "Quy chế",
       documentScope:
         "Dùng chung",
+      folderId: "FOL-0003",
+      folderName:
+        "Văn bản dùng chung",
       version: "v1.0",
       date: "22/10/2026",
       status:
@@ -63,6 +79,7 @@ function DocumentDetailPage() {
       fileName:
         "quy-che-quan-ly-tai-lieu.pdf",
       fileSize: "2.4 MB",
+      fileData: "",
       description:
         "Quy chế quản lý và sử dụng tài liệu nội bộ.",
       note: "",
@@ -75,6 +92,9 @@ function DocumentDetailPage() {
         "Hướng dẫn",
       documentScope:
         "Dùng chung",
+      folderId: "FOL-0003",
+      folderName:
+        "Văn bản dùng chung",
       version: "v2.1",
       date: "21/10/2026",
       status:
@@ -84,6 +104,7 @@ function DocumentDetailPage() {
       fileName:
         "huong-dan-eoffice.pdf",
       fileSize: "4.1 MB",
+      fileData: "",
       description:
         "Tài liệu hướng dẫn sử dụng hệ thống HLC E-Office.",
       note: "",
@@ -95,6 +116,9 @@ function DocumentDetailPage() {
       category: "Biên bản",
       documentScope:
         "Dùng chung",
+      folderId: "FOL-0003",
+      folderName:
+        "Văn bản dùng chung",
       version: "v1.0",
       date: "20/10/2026",
       status:
@@ -103,6 +127,7 @@ function DocumentDetailPage() {
       fileName:
         "bien-ban-hop-thang-10.pdf",
       fileSize: "1.8 MB",
+      fileData: "",
       description:
         "Biên bản họp dự án trong tháng 10.",
       note: "",
@@ -159,6 +184,10 @@ function DocumentDetailPage() {
     documentScope:
       item.documentScope ||
       "Dùng chung",
+    folderId:
+      item.folderId || "",
+    folderName:
+      item.folderName || "",
   }))
 
   const foundDocument =
@@ -193,13 +222,15 @@ function DocumentDetailPage() {
     savedPrototypeRole
   )
 
-  const [status, setStatus] =
-    useState(
-      foundDocument
-        ? statusOverrides[id] ||
-            foundDocument.status
-        : ""
-    )
+  const [
+    status,
+    setStatus,
+  ] = useState(
+    foundDocument
+      ? statusOverrides[id] ||
+          foundDocument.status
+      : ""
+  )
 
   const [
     versionItems,
@@ -233,8 +264,7 @@ function DocumentDetailPage() {
     comments,
     setComments,
   ] = useState(
-    storedComments[id] ||
-      []
+    storedComments[id] || []
   )
 
   const [
@@ -247,25 +277,25 @@ function DocumentDetailPage() {
     setShowRejectForm,
   ] = useState(false)
 
-  if (!foundDocument) {
-    return (
-      <div>
-        <h1>
-          Không tìm thấy tài liệu
-        </h1>
+  const [
+    pdfDocument,
+    setPdfDocument,
+  ] = useState(null)
 
-        <button
-          onClick={() =>
-            navigate(
-              "/documents"
-            )
-          }
-        >
-          ← Quay lại
-        </button>
-      </div>
-    )
-  }
+  const [
+    numPages,
+    setNumPages,
+  ] = useState(0)
+
+  const [
+    pdfLoading,
+    setPdfLoading,
+  ] = useState(false)
+
+  const [
+    pdfError,
+    setPdfError,
+  ] = useState("")
 
   const normalizeVersionStatus = (
     version
@@ -276,7 +306,9 @@ function DocumentDetailPage() {
   const normalizeShares = (
     rawShares
   ) => {
-    if (!Array.isArray(rawShares)) {
+    if (
+      !Array.isArray(rawShares)
+    ) {
       return []
     }
 
@@ -299,10 +331,13 @@ function DocumentDetailPage() {
           return {
             recipientId:
               option.id,
+
             recipientName:
               option.name,
+
             recipientType:
               option.type,
+
             permissions: [
               "view",
               "download",
@@ -313,10 +348,13 @@ function DocumentDetailPage() {
         return {
           recipientId:
             share.recipientId,
+
           recipientName:
             share.recipientName,
+
           recipientType:
             share.recipientType,
+
           permissions:
             Array.isArray(
               share.permissions
@@ -344,14 +382,15 @@ function DocumentDetailPage() {
 
   const isOwner =
     currentUser ===
-    foundDocument.uploader
+    foundDocument?.uploader
 
   const isRecordsClerk =
     currentRole ===
     "records_clerk"
 
   const isCommonDocument =
-    foundDocument.documentScope ===
+    foundDocument
+      ?.documentScope ===
     "Dùng chung"
 
   const clerkCanAccess =
@@ -359,24 +398,31 @@ function DocumentDetailPage() {
     isCommonDocument
 
   const canView =
-    isOwner ||
-    clerkCanAccess ||
-    Boolean(
-      currentShare?.permissions.includes(
-        "view"
+    Boolean(foundDocument) &&
+    (
+      isOwner ||
+      clerkCanAccess ||
+      Boolean(
+        currentShare?.permissions.includes(
+          "view"
+        )
       )
     )
 
   const canDownload =
-    isOwner ||
-    clerkCanAccess ||
-    Boolean(
-      currentShare?.permissions.includes(
-        "download"
+    Boolean(foundDocument) &&
+    (
+      isOwner ||
+      clerkCanAccess ||
+      Boolean(
+        currentShare?.permissions.includes(
+          "download"
+        )
       )
     )
 
   const canShare =
+    Boolean(foundDocument) &&
     isOwner &&
     (
       !isCommonDocument ||
@@ -385,6 +431,7 @@ function DocumentDetailPage() {
     )
 
   const canUpdateVersion =
+    Boolean(foundDocument) &&
     isOwner &&
     (
       !isCommonDocument ||
@@ -393,6 +440,7 @@ function DocumentDetailPage() {
     )
 
   const canManageAcceptance =
+    Boolean(foundDocument) &&
     isRecordsClerk &&
     isCommonDocument &&
     status ===
@@ -400,28 +448,37 @@ function DocumentDetailPage() {
 
   const baseVersion = {
     version:
-      foundDocument.version ||
+      foundDocument
+        ?.version ||
       "v1.0",
 
     updater:
-      foundDocument.uploader,
+      foundDocument
+        ?.uploader ||
+      "",
 
     date:
-      foundDocument.date ||
-      foundDocument.updatedAt,
+      foundDocument?.date ||
+      foundDocument?.updatedAt ||
+      "",
 
     fileName:
-      foundDocument.fileName,
+      foundDocument
+        ?.fileName ||
+      "",
 
     fileSize:
-      foundDocument.fileSize,
+      foundDocument
+        ?.fileSize ||
+      "",
 
     fileData:
-      foundDocument.fileData ||
+      foundDocument
+        ?.fileData ||
       "",
 
     note:
-      foundDocument.note ||
+      foundDocument?.note ||
       "",
 
     status:
@@ -436,13 +493,15 @@ function DocumentDetailPage() {
       (version) =>
         normalizeVersionStatus(
           version
-        ) === "Đã tiếp nhận"
+        ) ===
+        "Đã tiếp nhận"
     )
 
   const currentVersion =
     acceptedVersions.length > 0
       ? acceptedVersions[
-          acceptedVersions.length - 1
+          acceptedVersions.length -
+            1
         ]
       : baseVersion
 
@@ -451,8 +510,278 @@ function DocumentDetailPage() {
       (version) =>
         normalizeVersionStatus(
           version
-        ) === "Chờ tiếp nhận"
+        ) ===
+        "Chờ tiếp nhận"
     )
+
+  const currentFileName =
+    currentVersion.fileName ||
+    ""
+
+  const currentFileData =
+    currentVersion.fileData ||
+    ""
+
+  const lowerFileName =
+    currentFileName.toLowerCase()
+
+  const isPdf =
+    currentFileData.startsWith(
+      "data:application/pdf"
+    ) ||
+    lowerFileName.endsWith(
+      ".pdf"
+    )
+
+  const isImage =
+    currentFileData.startsWith(
+      "data:image/"
+    ) ||
+    [
+      ".jpg",
+      ".jpeg",
+      ".png",
+      ".gif",
+      ".webp",
+    ].some((extension) =>
+      lowerFileName.endsWith(
+        extension
+      )
+    )
+
+  const dataUrlToUint8Array = (
+    dataUrl
+  ) => {
+    const base64 =
+      dataUrl.split(",")[1]
+
+    const binaryString =
+      window.atob(base64)
+
+    const bytes =
+      new Uint8Array(
+        binaryString.length
+      )
+
+    for (
+      let i = 0;
+      i <
+      binaryString.length;
+      i += 1
+    ) {
+      bytes[i] =
+        binaryString.charCodeAt(
+          i
+        )
+    }
+
+    return bytes
+  }
+
+  // =========================
+  // LOAD PDF
+  // Không gọi pdf.destroy()
+  // để tránh crash khi rời trang.
+  // =========================
+
+  useEffect(() => {
+    canvasRefs.current = {}
+
+    if (
+      !canView ||
+      !currentFileData ||
+      !isPdf
+    ) {
+      setPdfDocument(null)
+      setNumPages(0)
+      setPdfLoading(false)
+      setPdfError("")
+      return
+    }
+
+    let cancelled = false
+
+    const loadPdf =
+      async () => {
+        try {
+          setPdfLoading(true)
+          setPdfError("")
+
+          const data =
+            dataUrlToUint8Array(
+              currentFileData
+            )
+
+          const loadingTask =
+            pdfjsLib.getDocument({
+              data,
+            })
+
+          const pdf =
+            await loadingTask.promise
+
+          if (cancelled) {
+            return
+          }
+
+          setPdfDocument(pdf)
+
+          setNumPages(
+            pdf.numPages
+          )
+        } catch (err) {
+          console.error(err)
+
+          if (!cancelled) {
+            setPdfDocument(null)
+            setNumPages(0)
+
+            setPdfError(
+              "Không thể hiển thị file PDF này."
+            )
+          }
+        } finally {
+          if (!cancelled) {
+            setPdfLoading(
+              false
+            )
+          }
+        }
+      }
+
+    loadPdf()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    canView,
+    currentFileData,
+    isPdf,
+  ])
+
+  // =========================
+  // RENDER PDF
+  // =========================
+
+  useEffect(() => {
+    if (
+      !pdfDocument ||
+      numPages === 0
+    ) {
+      return
+    }
+
+    let cancelled = false
+
+    const renderPages =
+      async () => {
+        for (
+          let pageNumber = 1;
+          pageNumber <=
+          numPages;
+          pageNumber += 1
+        ) {
+          if (cancelled) {
+            return
+          }
+
+          const canvas =
+            canvasRefs.current[
+              pageNumber
+            ]
+
+          if (!canvas) {
+            continue
+          }
+
+          try {
+            const page =
+              await pdfDocument.getPage(
+                pageNumber
+              )
+
+            const baseViewport =
+              page.getViewport({
+                scale: 1,
+              })
+
+            const targetWidth =
+              900
+
+            const scale =
+              targetWidth /
+              baseViewport.width
+
+            const viewport =
+              page.getViewport({
+                scale,
+              })
+
+            const outputScale =
+              window.devicePixelRatio ||
+              1
+
+            const context =
+              canvas.getContext(
+                "2d"
+              )
+
+            canvas.width =
+              Math.floor(
+                viewport.width *
+                  outputScale
+              )
+
+            canvas.height =
+              Math.floor(
+                viewport.height *
+                  outputScale
+              )
+
+            canvas.style.width =
+              "100%"
+
+            canvas.style.height =
+              "auto"
+
+            const transform =
+              outputScale !== 1
+                ? [
+                    outputScale,
+                    0,
+                    0,
+                    outputScale,
+                    0,
+                    0,
+                  ]
+                : null
+
+            await page
+              .render({
+                canvasContext:
+                  context,
+                viewport,
+                transform,
+              })
+              .promise
+          } catch (err) {
+            if (!cancelled) {
+              console.error(err)
+            }
+          }
+        }
+      }
+
+    renderPages()
+
+    return () => {
+      cancelled = true
+    }
+  }, [
+    pdfDocument,
+    numPages,
+  ])
 
   const saveVersions = (
     nextVersions
@@ -494,7 +823,9 @@ function DocumentDetailPage() {
 
     localStorage.setItem(
       "hlcDocumentStatus",
-      JSON.stringify(current)
+      JSON.stringify(
+        current
+      )
     )
 
     setStatus(newStatus)
@@ -515,7 +846,9 @@ function DocumentDetailPage() {
 
     localStorage.setItem(
       "hlcDocumentComments",
-      JSON.stringify(current)
+      JSON.stringify(
+        current
+      )
     )
 
     setComments(
@@ -556,7 +889,9 @@ function DocumentDetailPage() {
   }
 
   const handleAccept = () => {
-    if (!canManageAcceptance) {
+    if (
+      !canManageAcceptance
+    ) {
       return
     }
 
@@ -569,11 +904,14 @@ function DocumentDetailPage() {
       {
         author:
           `Văn thư - ${currentUser}`,
+
         action:
           "Tiếp nhận",
+
         content:
           receiveComment.trim() ||
           "Đã tiếp nhận tài liệu dùng chung.",
+
         date:
           new Date().toLocaleString(
             "vi-VN"
@@ -619,9 +957,13 @@ function DocumentDetailPage() {
       {
         author:
           `Văn thư - ${currentUser}`,
-        action: "Từ chối",
+
+        action:
+          "Từ chối",
+
         content:
           rejectReason.trim(),
+
         date:
           new Date().toLocaleString(
             "vi-VN"
@@ -649,14 +991,18 @@ function DocumentDetailPage() {
           i === index
             ? {
                 ...version,
+
                 status:
                   "Đã tiếp nhận",
+
                 reviewedBy:
                   currentUser,
+
                 reviewedAt:
                   new Date().toLocaleString(
                     "vi-VN"
                   ),
+
                 reviewNote:
                   "Văn thư đã tiếp nhận phiên bản.",
               }
@@ -683,14 +1029,18 @@ function DocumentDetailPage() {
             versionRejectIndex
               ? {
                   ...version,
+
                   status:
                     "Từ chối",
+
                   reviewedBy:
                     currentUser,
+
                   reviewedAt:
                     new Date().toLocaleString(
                       "vi-VN"
                     ),
+
                   reviewNote:
                     versionRejectReason.trim(),
                 }
@@ -715,6 +1065,7 @@ function DocumentDetailPage() {
       window.alert(
         "Bạn không được phép tải xuống tài liệu này."
       )
+
       return
     }
 
@@ -722,6 +1073,7 @@ function DocumentDetailPage() {
       window.alert(
         "File mẫu hoặc file cũ chưa có dữ liệu tải xuống."
       )
+
       return
     }
 
@@ -766,6 +1118,26 @@ function DocumentDetailPage() {
     }
 
     return "status pending"
+  }
+
+  if (!foundDocument) {
+    return (
+      <div>
+        <h1>
+          Không tìm thấy tài liệu
+        </h1>
+
+        <button
+          onClick={() =>
+            navigate(
+              "/documents"
+            )
+          }
+        >
+          ← Quay lại danh sách
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -849,11 +1221,34 @@ function DocumentDetailPage() {
             </select>
           </div>
         </div>
+
+        {canView && (
+          <div className="settings-note">
+            Quyền hiện tại:{" "}
+            <strong>
+              Xem
+              {canDownload
+                ? ", Tải xuống"
+                : ""}
+              {canShare
+                ? ", Chia sẻ"
+                : ""}
+            </strong>
+          </div>
+        )}
       </div>
 
       {!canView ? (
         <div className="reject-message">
-          Không có quyền xem tài liệu.
+          <strong>
+            Không có quyền xem tài liệu.
+          </strong>
+
+          <p>
+            Người dùng hiện tại chưa
+            được cấp quyền Xem tài liệu
+            này.
+          </p>
         </div>
       ) : (
         <>
@@ -867,8 +1262,9 @@ function DocumentDetailPage() {
                 }{" "}
                 phiên bản mới
               </strong>{" "}
-              đang chờ Văn thư tiếp nhận.
-              Phiên bản hiện hành vẫn là{" "}
+              đang chờ Văn thư tiếp
+              nhận. Phiên bản hiện hành
+              vẫn là{" "}
               <strong>
                 {
                   currentVersion.version
@@ -914,22 +1310,30 @@ function DocumentDetailPage() {
             <div className="document-actions">
               <button
                 className="accept-button"
-                onClick={() =>
+                onClick={() => {
                   setShowAcceptForm(
                     true
                   )
-                }
+
+                  setShowRejectForm(
+                    false
+                  )
+                }}
               >
                 Tiếp nhận
               </button>
 
               <button
                 className="reject-button"
-                onClick={() =>
+                onClick={() => {
                   setShowRejectForm(
                     true
                   )
-                }
+
+                  setShowAcceptForm(
+                    false
+                  )
+                }}
               >
                 Từ chối
               </button>
@@ -942,18 +1346,24 @@ function DocumentDetailPage() {
                 Tiếp nhận tài liệu
               </h2>
 
-              <textarea
-                rows="4"
-                value={
-                  receiveComment
-                }
-                placeholder="Ý kiến tiếp nhận..."
-                onChange={(e) =>
-                  setReceiveComment(
-                    e.target.value
-                  )
-                }
-              />
+              <div className="form-group">
+                <label>
+                  Ý kiến tiếp nhận
+                </label>
+
+                <textarea
+                  rows="4"
+                  value={
+                    receiveComment
+                  }
+                  placeholder="Ý kiến tiếp nhận..."
+                  onChange={(e) =>
+                    setReceiveComment(
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
 
               <div className="form-actions">
                 <button
@@ -985,18 +1395,24 @@ function DocumentDetailPage() {
                 Từ chối tài liệu
               </h2>
 
-              <textarea
-                rows="4"
-                value={
-                  rejectReason
-                }
-                placeholder="Lý do từ chối..."
-                onChange={(e) =>
-                  setRejectReason(
-                    e.target.value
-                  )
-                }
-              />
+              <div className="form-group">
+                <label>
+                  Lý do từ chối *
+                </label>
+
+                <textarea
+                  rows="4"
+                  value={
+                    rejectReason
+                  }
+                  placeholder="Lý do từ chối..."
+                  onChange={(e) =>
+                    setRejectReason(
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
 
               <div className="form-actions">
                 <button
@@ -1059,6 +1475,7 @@ function DocumentDetailPage() {
                     setVersionRejectIndex(
                       null
                     )
+
                     setVersionRejectReason(
                       ""
                     )
@@ -1089,6 +1506,7 @@ function DocumentDetailPage() {
                 <span className="detail-label">
                   Tên tài liệu
                 </span>
+
                 <p>
                   {
                     foundDocument.name
@@ -1100,6 +1518,7 @@ function DocumentDetailPage() {
                 <span className="detail-label">
                   Loại tài liệu
                 </span>
+
                 <p>
                   {
                     foundDocument.category
@@ -1111,6 +1530,7 @@ function DocumentDetailPage() {
                 <span className="detail-label">
                   Phạm vi
                 </span>
+
                 <p>
                   {
                     foundDocument.documentScope
@@ -1120,8 +1540,21 @@ function DocumentDetailPage() {
 
               <div>
                 <span className="detail-label">
+                  Thư mục
+                </span>
+
+                <p>
+                  {foundDocument.folderName
+                    ? `📁 ${foundDocument.folderName}`
+                    : "Không có thư mục"}
+                </p>
+              </div>
+
+              <div>
+                <span className="detail-label">
                   Người tải lên
                 </span>
+
                 <p>
                   {
                     foundDocument.uploader
@@ -1133,6 +1566,7 @@ function DocumentDetailPage() {
                 <span className="detail-label">
                   Trạng thái
                 </span>
+
                 <p>
                   <span
                     className={getStatusClass(
@@ -1179,15 +1613,13 @@ function DocumentDetailPage() {
             <div className="file-row">
               <div>
                 <strong>
-                  {
-                    currentVersion.fileName
-                  }
+                  {currentVersion.fileName ||
+                    "Không có tệp"}
                 </strong>
 
                 <p>
-                  {
-                    currentVersion.fileSize
-                  }
+                  {currentVersion.fileSize ||
+                    "-"}
                 </p>
               </div>
 
@@ -1205,6 +1637,280 @@ function DocumentDetailPage() {
             </div>
           </div>
 
+          {/* XEM TRỰC TIẾP */}
+
+          <div className="detail-card">
+            <div
+              style={{
+                display: "flex",
+                justifyContent:
+                  "space-between",
+                alignItems:
+                  "center",
+                gap: "12px",
+                marginBottom:
+                  "16px",
+              }}
+            >
+              <div>
+                <h2
+                  style={{
+                    marginBottom:
+                      "4px",
+                  }}
+                >
+                  Xem tài liệu
+                </h2>
+
+                <p
+                  style={{
+                    margin: 0,
+                    color:
+                      "#6b7280",
+                  }}
+                >
+                  Xem trực tiếp phiên
+                  bản hiện hành.
+                </p>
+              </div>
+
+              <span
+                style={{
+                  padding:
+                    "6px 10px",
+                  borderRadius:
+                    "999px",
+                  background:
+                    "#ecfdf5",
+                  color:
+                    "#047857",
+                  fontSize:
+                    "13px",
+                  fontWeight:
+                    "600",
+                }}
+              >
+                Quyền Xem
+              </span>
+            </div>
+
+            {!currentFileData && (
+              <div className="settings-note">
+                File mẫu cũ chưa có dữ
+                liệu để xem trực tiếp.
+                File mới tải lên sẽ xem
+                được tại đây.
+              </div>
+            )}
+
+            {currentFileData &&
+              isPdf && (
+              <>
+                {pdfLoading && (
+                  <div
+                    style={{
+                      padding:
+                        "40px",
+                      textAlign:
+                        "center",
+                    }}
+                  >
+                    Đang tải PDF...
+                  </div>
+                )}
+
+                {pdfError && (
+                  <div className="form-error">
+                    {pdfError}
+                  </div>
+                )}
+
+                {pdfDocument &&
+                  numPages >
+                    0 && (
+                    <div
+                      style={{
+                        maxHeight:
+                          "720px",
+
+                        overflowY:
+                          "auto",
+
+                        padding:
+                          "20px",
+
+                        background:
+                          "#e5e7eb",
+
+                        borderRadius:
+                          "10px",
+                      }}
+                    >
+                      {Array.from(
+                        {
+                          length:
+                            numPages,
+                        },
+                        (
+                          _,
+                          index
+                        ) =>
+                          index +
+                          1
+                      ).map(
+                        (
+                          pageNumber
+                        ) => (
+                          <div
+                            key={
+                              pageNumber
+                            }
+                            style={{
+                              maxWidth:
+                                "900px",
+
+                              margin:
+                                "0 auto 24px",
+                            }}
+                          >
+                            <div
+                              style={{
+                                textAlign:
+                                  "center",
+
+                                marginBottom:
+                                  "7px",
+
+                                fontWeight:
+                                  "600",
+
+                                color:
+                                  "#374151",
+                              }}
+                            >
+                              Trang{" "}
+                              {
+                                pageNumber
+                              }{" "}
+                              /{" "}
+                              {
+                                numPages
+                              }
+                            </div>
+
+                            <div
+                              style={{
+                                background:
+                                  "#ffffff",
+
+                                boxShadow:
+                                  "0 4px 15px rgba(0,0,0,0.15)",
+                              }}
+                            >
+                              <canvas
+                                ref={(
+                                  canvas
+                                ) => {
+                                  canvasRefs.current[
+                                    pageNumber
+                                  ] =
+                                    canvas
+                                }}
+                                style={{
+                                  display:
+                                    "block",
+                                  width:
+                                    "100%",
+                                  height:
+                                    "auto",
+                                }}
+                              />
+                            </div>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  )}
+              </>
+            )}
+
+            {currentFileData &&
+              isImage && (
+              <div
+                style={{
+                  maxHeight:
+                    "720px",
+
+                  overflow:
+                    "auto",
+
+                  padding:
+                    "20px",
+
+                  textAlign:
+                    "center",
+
+                  background:
+                    "#e5e7eb",
+
+                  borderRadius:
+                    "10px",
+                }}
+              >
+                <img
+                  src={
+                    currentFileData
+                  }
+                  alt={
+                    currentVersion.fileName ||
+                    "Tài liệu"
+                  }
+                  style={{
+                    maxWidth:
+                      "100%",
+
+                    height:
+                      "auto",
+
+                    background:
+                      "#ffffff",
+
+                    boxShadow:
+                      "0 4px 15px rgba(0,0,0,0.15)",
+                  }}
+                />
+              </div>
+            )}
+
+            {currentFileData &&
+              !isPdf &&
+              !isImage && (
+              <div className="settings-note">
+                Định dạng file này chưa
+                hỗ trợ xem trực tiếp
+                trong prototype.
+              </div>
+            )}
+
+            {!canDownload &&
+              currentFileData && (
+              <div
+                className="settings-note"
+                style={{
+                  marginTop:
+                    "14px",
+                }}
+              >
+                <strong>
+                  Chỉ có quyền Xem:
+                </strong>{" "}
+                bạn có thể đọc tài liệu
+                trực tiếp nhưng không
+                được tải file xuống.
+              </div>
+            )}
+          </div>
+
           <div className="detail-card">
             <h2>
               Lịch sử phiên bản
@@ -1213,13 +1919,33 @@ function DocumentDetailPage() {
             <table>
               <thead>
                 <tr>
-                  <th>Phiên bản</th>
-                  <th>Tệp</th>
-                  <th>Người cập nhật</th>
-                  <th>Ngày</th>
-                  <th>Trạng thái</th>
-                  <th>Ghi chú</th>
-                  <th>Thao tác</th>
+                  <th>
+                    Phiên bản
+                  </th>
+
+                  <th>
+                    Tệp
+                  </th>
+
+                  <th>
+                    Người cập nhật
+                  </th>
+
+                  <th>
+                    Ngày
+                  </th>
+
+                  <th>
+                    Trạng thái
+                  </th>
+
+                  <th>
+                    Ghi chú
+                  </th>
+
+                  <th>
+                    Thao tác
+                  </th>
                 </tr>
               </thead>
 
@@ -1290,6 +2016,7 @@ function DocumentDetailPage() {
                       index
                     ) => ({
                       ...version,
+
                       storageIndex:
                         index,
                     })
@@ -1350,8 +2077,10 @@ function DocumentDetailPage() {
                                 style={{
                                   marginTop:
                                     "5px",
+
                                   fontSize:
                                     "12px",
+
                                   color:
                                     "#6b7280",
                                 }}
@@ -1373,8 +2102,10 @@ function DocumentDetailPage() {
                               style={{
                                 display:
                                   "flex",
+
                                 gap:
                                   "6px",
+
                                 flexWrap:
                                   "wrap",
                               }}
@@ -1429,7 +2160,23 @@ function DocumentDetailPage() {
             </table>
           </div>
 
-          {comments.length > 0 && (
+          {status ===
+            "Từ chối" &&
+            rejectReasons[id] && (
+              <div className="reject-message">
+                <strong>
+                  Lý do từ chối:
+                </strong>{" "}
+                {
+                  rejectReasons[
+                    id
+                  ]
+                }
+              </div>
+            )}
+
+          {comments.length >
+            0 && (
             <div className="detail-card">
               <h2>
                 Lịch sử xử lý
@@ -1438,10 +2185,21 @@ function DocumentDetailPage() {
               <table>
                 <thead>
                   <tr>
-                    <th>Người thực hiện</th>
-                    <th>Hành động</th>
-                    <th>Ý kiến</th>
-                    <th>Thời gian</th>
+                    <th>
+                      Người thực hiện
+                    </th>
+
+                    <th>
+                      Hành động
+                    </th>
+
+                    <th>
+                      Ý kiến
+                    </th>
+
+                    <th>
+                      Thời gian
+                    </th>
                   </tr>
                 </thead>
 
@@ -1459,9 +2217,8 @@ function DocumentDetailPage() {
                         </td>
 
                         <td>
-                          {
-                            comment.action
-                          }
+                          {comment.action ||
+                            "-"}
                         </td>
 
                         <td>
@@ -1490,7 +2247,8 @@ function DocumentDetailPage() {
             đối với tài liệu dùng chung,
             phiên bản mới chưa được Văn
             thư tiếp nhận sẽ không thay
-            thế phiên bản đang hiện hành.
+            thế phiên bản đang hiện
+            hành.
           </div>
         </>
       )}

@@ -42,53 +42,75 @@ function DocumentsPage() {
     },
   ]
 
+  const defaultFolders = [
+    {
+      id: "FOL-0001",
+      name: "Dự án Nhà ở Đường A",
+      scope: "Phòng ban",
+      description:
+        "Lưu trữ hồ sơ, biên bản và tài liệu liên quan đến Dự án Nhà ở Đường A.",
+      createdBy: "Nguyễn Văn A",
+    },
+    {
+      id: "FOL-0002",
+      name: "Dự án Khu dân cư B",
+      scope: "Phòng ban",
+      description:
+        "Tài liệu nội bộ liên quan đến Dự án Khu dân cư B.",
+      createdBy: "Nguyễn Văn A",
+    },
+    {
+      id: "FOL-0003",
+      name: "Văn bản dùng chung",
+      scope: "Dùng chung",
+      description:
+        "Thư mục văn bản và tài liệu dùng chung toàn công ty.",
+      createdBy: "Nguyễn Văn A",
+    },
+  ]
+
   const defaultDocuments = [
     {
       id: "TL-0001",
       name:
         "Quy chế quản lý tài liệu nội bộ",
       category: "Quy chế",
-      documentScope:
-        "Dùng chung",
+      documentScope: "Dùng chung",
+      folderId: "FOL-0003",
+      folderName:
+        "Văn bản dùng chung",
       version: "v1.0",
-      updatedAt:
-        "22/10/2026",
-      status:
-        "Đã tiếp nhận",
-      uploader:
-        "Nguyễn Văn A",
+      updatedAt: "22/10/2026",
+      status: "Đã tiếp nhận",
+      uploader: "Nguyễn Văn A",
     },
     {
       id: "TL-0002",
       name:
         "Hướng dẫn sử dụng hệ thống E-Office",
-      category:
-        "Hướng dẫn",
-      documentScope:
-        "Dùng chung",
+      category: "Hướng dẫn",
+      documentScope: "Dùng chung",
+      folderId: "FOL-0003",
+      folderName:
+        "Văn bản dùng chung",
       version: "v2.1",
-      updatedAt:
-        "21/10/2026",
-      status:
-        "Đã tiếp nhận",
-      uploader:
-        "Trần Thị B",
+      updatedAt: "21/10/2026",
+      status: "Đã tiếp nhận",
+      uploader: "Trần Thị B",
     },
     {
       id: "TL-0003",
       name:
         "Biên bản họp dự án tháng 10",
-      category:
-        "Biên bản",
-      documentScope:
-        "Dùng chung",
+      category: "Biên bản",
+      documentScope: "Dùng chung",
+      folderId: "FOL-0003",
+      folderName:
+        "Văn bản dùng chung",
       version: "v1.0",
-      updatedAt:
-        "20/10/2026",
-      status:
-        "Chờ tiếp nhận",
-      uploader:
-        "Lê Văn C",
+      updatedAt: "20/10/2026",
+      status: "Chờ tiếp nhận",
+      uploader: "Lê Văn C",
     },
   ]
 
@@ -120,6 +142,13 @@ function DocumentsPage() {
       )
     ) || {}
 
+  const savedFolders =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcDocumentFolders"
+      )
+    ) || []
+
   const savedPrototypeUser =
     localStorage.getItem(
       "hlcDocumentPrototypeUser"
@@ -145,6 +174,13 @@ function DocumentsPage() {
     savedPrototypeRole
   )
 
+  const [
+    customFolders,
+    setCustomFolders,
+  ] = useState(
+    savedFolders
+  )
+
   const [keyword, setKeyword] =
     useState("")
 
@@ -156,6 +192,41 @@ function DocumentsPage() {
 
   const [status, setStatus] =
     useState("")
+
+  const [
+    selectedFolderId,
+    setSelectedFolderId,
+  ] = useState("")
+
+  const [
+    showCreateFolder,
+    setShowCreateFolder,
+  ] = useState(false)
+
+  const [
+    folderName,
+    setFolderName,
+  ] = useState("")
+
+  const [
+    folderScope,
+    setFolderScope,
+  ] = useState("Phòng ban")
+
+  const [
+    folderDescription,
+    setFolderDescription,
+  ] = useState("")
+
+  const [
+    folderError,
+    setFolderError,
+  ] = useState("")
+
+  const allFolders = [
+    ...defaultFolders,
+    ...customFolders,
+  ]
 
   const normalizeShares = (
     rawShares
@@ -310,6 +381,12 @@ function DocumentsPage() {
           doc.documentScope ||
           "Dùng chung",
 
+        folderId:
+          doc.folderId || "",
+
+        folderName:
+          doc.folderName || "",
+
         status:
           statusOverrides[
             doc.id
@@ -424,9 +501,7 @@ function DocumentsPage() {
     const permissions = []
 
     if (canView) {
-      permissions.push(
-        "Xem"
-      )
+      permissions.push("Xem")
     }
 
     if (canDownload) {
@@ -492,14 +567,158 @@ function DocumentsPage() {
           doc.status ===
             status
 
+        const matchFolder =
+          selectedFolderId ===
+            "" ||
+          doc.folderId ===
+            selectedFolderId
+
         return (
           matchKeyword &&
           matchCategory &&
           matchScope &&
-          matchStatus
+          matchStatus &&
+          matchFolder
         )
       }
     )
+
+  const selectedFolder =
+    allFolders.find(
+      (folder) =>
+        folder.id ===
+        selectedFolderId
+    ) || null
+
+  const visibleFolders =
+    allFolders.filter(
+      (folder) => {
+        if (isRecordsClerk) {
+          return (
+            folder.scope ===
+            "Dùng chung"
+          )
+        }
+
+        return true
+      }
+    )
+
+  const getFolderDocumentCount = (
+    folderId
+  ) =>
+    accessibleDocuments.filter(
+      (doc) =>
+        doc.folderId ===
+        folderId
+    ).length
+
+  const generateFolderId = () => {
+    const numbers =
+      allFolders.map(
+        (folder) => {
+          const match =
+            folder.id?.match(
+              /^FOL-(\d+)$/
+            )
+
+          return match
+            ? Number(match[1])
+            : 0
+        }
+      )
+
+    const highest =
+      Math.max(
+        3,
+        ...numbers
+      )
+
+    return `FOL-${String(
+      highest + 1
+    ).padStart(4, "0")}`
+  }
+
+  const handleCreateFolder =
+    () => {
+      if (!folderName.trim()) {
+        setFolderError(
+          "Vui lòng nhập tên thư mục."
+        )
+        return
+      }
+
+      const duplicated =
+        allFolders.some(
+          (folder) =>
+            folder.name
+              .trim()
+              .toLowerCase() ===
+              folderName
+                .trim()
+                .toLowerCase() &&
+            folder.scope ===
+              folderScope
+        )
+
+      if (duplicated) {
+        setFolderError(
+          "Đã tồn tại thư mục cùng tên trong phạm vi này."
+        )
+        return
+      }
+
+      const newFolder = {
+        id: generateFolderId(),
+
+        name:
+          folderName.trim(),
+
+        scope:
+          folderScope,
+
+        description:
+          folderDescription.trim(),
+
+        createdBy:
+          currentUser,
+
+        createdAt:
+          new Date().toLocaleDateString(
+            "vi-VN"
+          ),
+      }
+
+      const nextFolders = [
+        ...customFolders,
+        newFolder,
+      ]
+
+      localStorage.setItem(
+        "hlcDocumentFolders",
+        JSON.stringify(
+          nextFolders
+        )
+      )
+
+      setCustomFolders(
+        nextFolders
+      )
+
+      setSelectedFolderId(
+        newFolder.id
+      )
+
+      setFolderName("")
+      setFolderDescription("")
+      setFolderScope(
+        "Phòng ban"
+      )
+      setFolderError("")
+      setShowCreateFolder(
+        false
+      )
+    }
 
   const handleUserChange = (
     event
@@ -527,6 +746,16 @@ function DocumentsPage() {
       "hlcDocumentPrototypeRole",
       role
     )
+
+    if (
+      role ===
+        "records_clerk" &&
+      selectedFolder &&
+      selectedFolder.scope !==
+        "Dùng chung"
+    ) {
+      setSelectedFolderId("")
+    }
   }
 
   const getStatusClass = (
@@ -549,6 +778,20 @@ function DocumentsPage() {
     return "status pending"
   }
 
+  const handleUploadClick =
+    () => {
+      if (selectedFolderId) {
+        navigate(
+          `/documents/upload?folder=${selectedFolderId}`
+        )
+        return
+      }
+
+      navigate(
+        "/documents/upload"
+      )
+    }
+
   return (
     <div>
       <div className="page-title-row">
@@ -564,16 +807,33 @@ function DocumentsPage() {
         </div>
 
         {!isRecordsClerk && (
-          <button
-            className="primary-button"
-            onClick={() =>
-              navigate(
-                "/documents/upload"
-              )
-            }
+          <div
+            style={{
+              display: "flex",
+              gap: "10px",
+              flexWrap: "wrap",
+            }}
           >
-            + Tải lên tài liệu
-          </button>
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setShowCreateFolder(
+                  true
+                )
+              }
+            >
+              + Tạo thư mục
+            </button>
+
+            <button
+              className="primary-button"
+              onClick={
+                handleUploadClick
+              }
+            >
+              + Tải lên tài liệu
+            </button>
+          </div>
         )}
       </div>
 
@@ -637,6 +897,304 @@ function DocumentsPage() {
         </div>
       </div>
 
+      {showCreateFolder &&
+        !isRecordsClerk && (
+          <div className="detail-card">
+            <h2>
+              Tạo thư mục tài liệu
+            </h2>
+
+            <p
+              style={{
+                color:
+                  "#6b7280",
+              }}
+            >
+              Có thể dùng thư mục để
+              nhóm tài liệu theo dự án,
+              công trình hoặc chủ đề.
+            </p>
+
+            {folderError && (
+              <div className="form-error">
+                {folderError}
+              </div>
+            )}
+
+            <div className="detail-grid">
+              <div className="form-group">
+                <label>
+                  Tên thư mục *
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Ví dụ: Dự án Nhà ở Đường A"
+                  value={
+                    folderName
+                  }
+                  onChange={(e) =>
+                    setFolderName(
+                      e.target.value
+                    )
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>
+                  Phạm vi *
+                </label>
+
+                <select
+                  value={
+                    folderScope
+                  }
+                  onChange={(e) =>
+                    setFolderScope(
+                      e.target.value
+                    )
+                  }
+                >
+                  <option value="Phòng ban">
+                    Phòng ban
+                  </option>
+
+                  <option value="Dùng chung">
+                    Dùng chung
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label>
+                Mô tả
+              </label>
+
+              <textarea
+                rows="3"
+                placeholder="Ví dụ: Lưu hồ sơ, bản vẽ và biên bản liên quan đến dự án..."
+                value={
+                  folderDescription
+                }
+                onChange={(e) =>
+                  setFolderDescription(
+                    e.target.value
+                  )
+                }
+              />
+            </div>
+
+            <div className="form-actions">
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setShowCreateFolder(
+                    false
+                  )
+                  setFolderError("")
+                }}
+              >
+                Hủy
+              </button>
+
+              <button
+                className="primary-button"
+                onClick={
+                  handleCreateFolder
+                }
+              >
+                Tạo thư mục
+              </button>
+            </div>
+          </div>
+        )}
+
+      {/* FOLDERS */}
+
+      <div className="detail-card">
+        <div
+          style={{
+            display: "flex",
+            justifyContent:
+              "space-between",
+            alignItems:
+              "center",
+            gap: "12px",
+            marginBottom:
+              "14px",
+          }}
+        >
+          <div>
+            <h2>
+              Thư mục
+            </h2>
+
+            <p
+              style={{
+                margin: 0,
+                color:
+                  "#6b7280",
+              }}
+            >
+              Nhóm tài liệu theo dự án,
+              công trình hoặc phạm vi.
+            </p>
+          </div>
+
+          {selectedFolderId && (
+            <button
+              className="secondary-button"
+              onClick={() =>
+                setSelectedFolderId(
+                  ""
+                )
+              }
+            >
+              Xem tất cả
+            </button>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: "12px",
+          }}
+        >
+          {visibleFolders.map(
+            (folder) => {
+              const active =
+                selectedFolderId ===
+                folder.id
+
+              return (
+                <button
+                  type="button"
+                  key={
+                    folder.id
+                  }
+                  onClick={() =>
+                    setSelectedFolderId(
+                      active
+                        ? ""
+                        : folder.id
+                    )
+                  }
+                  style={{
+                    textAlign:
+                      "left",
+                    padding:
+                      "16px",
+                    borderRadius:
+                      "10px",
+                    cursor:
+                      "pointer",
+
+                    border: active
+                      ? "2px solid #1d4ed8"
+                      : "1px solid #dbe3ee",
+
+                    background:
+                      active
+                        ? "#eff6ff"
+                        : "#ffffff",
+
+                    color:
+                      "#111827",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize:
+                        "28px",
+                      marginBottom:
+                        "8px",
+                    }}
+                  >
+                    📁
+                  </div>
+
+                  <strong>
+                    {folder.name}
+                  </strong>
+
+                  <div
+                    style={{
+                      marginTop:
+                        "6px",
+                      fontSize:
+                        "13px",
+                      color:
+                        "#6b7280",
+                    }}
+                  >
+                    {folder.scope}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop:
+                        "6px",
+                      fontSize:
+                        "13px",
+                      color:
+                        "#6b7280",
+                    }}
+                  >
+                    {getFolderDocumentCount(
+                      folder.id
+                    )}{" "}
+                    tài liệu
+                  </div>
+                </button>
+              )
+            }
+          )}
+
+          {visibleFolders.length ===
+            0 && (
+            <p>
+              Chưa có thư mục.
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* BREADCRUMB */}
+
+      {selectedFolder && (
+        <div
+          className="settings-note"
+          style={{
+            marginBottom:
+              "16px",
+          }}
+        >
+          <strong>
+            Tài liệu
+          </strong>
+          {" / "}
+          <strong>
+            {selectedFolder.name}
+          </strong>
+
+          {selectedFolder.description && (
+            <>
+              <br />
+              {
+                selectedFolder.description
+              }
+            </>
+          )}
+        </div>
+      )}
+
+      {/* FILTER */}
+
       <div className="filter-bar">
         <input
           type="text"
@@ -648,6 +1206,36 @@ function DocumentsPage() {
             )
           }
         />
+
+        <select
+          value={
+            selectedFolderId
+          }
+          onChange={(e) =>
+            setSelectedFolderId(
+              e.target.value
+            )
+          }
+        >
+          <option value="">
+            Tất cả thư mục
+          </option>
+
+          {visibleFolders.map(
+            (folder) => (
+              <option
+                key={
+                  folder.id
+                }
+                value={
+                  folder.id
+                }
+              >
+                {folder.name}
+              </option>
+            )
+          )}
+        </select>
 
         <select
           value={category}
@@ -725,19 +1313,51 @@ function DocumentsPage() {
         </select>
       </div>
 
+      {/* DOCUMENT TABLE */}
+
       <div className="document-table">
         <table>
           <thead>
             <tr>
-              <th>Mã tài liệu</th>
-              <th>Tên tài liệu</th>
-              <th>Danh mục</th>
-              <th>Phạm vi</th>
-              <th>Phiên bản hiện hành</th>
-              <th>Cập nhật</th>
-              <th>Quyền truy cập</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
+              <th>
+                Mã tài liệu
+              </th>
+
+              <th>
+                Tên tài liệu
+              </th>
+
+              <th>
+                Thư mục
+              </th>
+
+              <th>
+                Danh mục
+              </th>
+
+              <th>
+                Phạm vi
+              </th>
+
+              <th>
+                Phiên bản hiện hành
+              </th>
+
+              <th>
+                Cập nhật
+              </th>
+
+              <th>
+                Quyền truy cập
+              </th>
+
+              <th>
+                Trạng thái
+              </th>
+
+              <th>
+                Thao tác
+              </th>
             </tr>
           </thead>
 
@@ -771,6 +1391,26 @@ function DocumentsPage() {
                         phiên bản đang
                         chờ tiếp nhận
                       </div>
+                    )}
+                  </td>
+
+                  <td>
+                    {doc.folderName ? (
+                      <span>
+                        📁{" "}
+                        {
+                          doc.folderName
+                        }
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          color:
+                            "#9ca3af",
+                        }}
+                      >
+                        Không có
+                      </span>
                     )}
                   </td>
 
@@ -848,7 +1488,7 @@ function DocumentsPage() {
               0 && (
               <tr>
                 <td
-                  colSpan="9"
+                  colSpan="10"
                   className="empty-table"
                 >
                   Không có tài liệu phù
@@ -858,6 +1498,22 @@ function DocumentsPage() {
             )}
           </tbody>
         </table>
+      </div>
+
+      <div
+        className="settings-note"
+        style={{
+          marginTop: "16px",
+        }}
+      >
+        <strong>
+          Ghi chú prototype:
+        </strong>{" "}
+        Thư mục là lớp tổ chức tài liệu
+        theo dự án/công trình. Danh mục
+        vẫn dùng để mô tả loại tài liệu
+        như Quy chế, Hướng dẫn, Biên
+        bản...
       </div>
     </div>
   )

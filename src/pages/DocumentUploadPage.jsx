@@ -1,14 +1,69 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import {
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom"
 
 function DocumentUploadPage() {
   const navigate = useNavigate()
 
+  const [
+    searchParams,
+  ] = useSearchParams()
+
   const defaultCategories = [
-    { id: "DOC-CAT-001", name: "Quy chế" },
-    { id: "DOC-CAT-002", name: "Hướng dẫn" },
-    { id: "DOC-CAT-003", name: "Biên bản" },
-    { id: "DOC-CAT-004", name: "Khác" },
+    {
+      id: "DOC-CAT-001",
+      name: "Quy chế",
+    },
+    {
+      id: "DOC-CAT-002",
+      name: "Hướng dẫn",
+    },
+    {
+      id: "DOC-CAT-003",
+      name: "Biên bản",
+    },
+    {
+      id: "DOC-CAT-004",
+      name: "Khác",
+    },
+  ]
+
+  const defaultFolders = [
+    {
+      id: "FOL-0001",
+      name:
+        "Dự án Nhà ở Đường A",
+      scope:
+        "Phòng ban",
+      description:
+        "Lưu trữ hồ sơ, biên bản và tài liệu liên quan đến Dự án Nhà ở Đường A.",
+      createdBy:
+        "Nguyễn Văn A",
+    },
+    {
+      id: "FOL-0002",
+      name:
+        "Dự án Khu dân cư B",
+      scope:
+        "Phòng ban",
+      description:
+        "Tài liệu nội bộ liên quan đến Dự án Khu dân cư B.",
+      createdBy:
+        "Nguyễn Văn A",
+    },
+    {
+      id: "FOL-0003",
+      name:
+        "Văn bản dùng chung",
+      scope:
+        "Dùng chung",
+      description:
+        "Thư mục văn bản và tài liệu dùng chung toàn công ty.",
+      createdBy:
+        "Nguyễn Văn A",
+    },
   ]
 
   const savedCategories =
@@ -23,6 +78,36 @@ function DocumentUploadPage() {
       ? savedCategories
       : defaultCategories
 
+  const savedFolders =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcDocumentFolders"
+      )
+    ) || []
+
+  const folders = [
+    ...defaultFolders,
+    ...savedFolders,
+  ]
+
+  const currentUser =
+    localStorage.getItem(
+      "hlcDocumentPrototypeUser"
+    ) ||
+    "Nguyễn Văn A"
+
+  const initialFolderId =
+    searchParams.get(
+      "folder"
+    ) || ""
+
+  const initialFolder =
+    folders.find(
+      (folder) =>
+        folder.id ===
+        initialFolderId
+    )
+
   const [name, setName] =
     useState("")
 
@@ -32,7 +117,17 @@ function DocumentUploadPage() {
   const [
     documentScope,
     setDocumentScope,
-  ] = useState("Phòng ban")
+  ] = useState(
+    initialFolder?.scope ||
+      "Phòng ban"
+  )
+
+  const [
+    selectedFolderId,
+    setSelectedFolderId,
+  ] = useState(
+    initialFolderId
+  )
 
   const [
     description,
@@ -49,6 +144,20 @@ function DocumentUploadPage() {
     uploading,
     setUploading,
   ] = useState(false)
+
+  const availableFolders =
+    folders.filter(
+      (folder) =>
+        folder.scope ===
+        documentScope
+    )
+
+  const selectedFolder =
+    folders.find(
+      (folder) =>
+        folder.id ===
+        selectedFolderId
+    ) || null
 
   const readFileAsDataUrl = (
     selectedFile
@@ -93,7 +202,9 @@ function DocumentUploadPage() {
             : 0
         })
         .filter((number) =>
-          Number.isFinite(number)
+          Number.isFinite(
+            number
+          )
         )
 
     const highest =
@@ -105,6 +216,58 @@ function DocumentUploadPage() {
     return `TL-${String(
       highest + 1
     ).padStart(4, "0")}`
+  }
+
+  const handleScopeChange = (
+    event
+  ) => {
+    const newScope =
+      event.target.value
+
+    setDocumentScope(
+      newScope
+    )
+
+    const currentFolder =
+      folders.find(
+        (folder) =>
+          folder.id ===
+          selectedFolderId
+      )
+
+    if (
+      currentFolder &&
+      currentFolder.scope !==
+        newScope
+    ) {
+      setSelectedFolderId(
+        ""
+      )
+    }
+  }
+
+  const handleFolderChange = (
+    event
+  ) => {
+    const folderId =
+      event.target.value
+
+    setSelectedFolderId(
+      folderId
+    )
+
+    const folder =
+      folders.find(
+        (item) =>
+          item.id ===
+          folderId
+      )
+
+    if (folder) {
+      setDocumentScope(
+        folder.scope
+      )
+    }
   }
 
   const handleUpload =
@@ -163,6 +326,13 @@ function DocumentUploadPage() {
             ? "Chờ tiếp nhận"
             : "Đã tiếp nhận"
 
+        const folder =
+          folders.find(
+            (item) =>
+              item.id ===
+              selectedFolderId
+          )
+
         const newDocument = {
           id: newId,
 
@@ -172,6 +342,14 @@ function DocumentUploadPage() {
           category,
 
           documentScope,
+
+          folderId:
+            folder?.id ||
+            "",
+
+          folderName:
+            folder?.name ||
+            "",
 
           description:
             description.trim(),
@@ -189,7 +367,7 @@ function DocumentUploadPage() {
             initialStatus,
 
           uploader:
-            "Nguyễn Văn A",
+            currentUser,
 
           fileName:
             file.name,
@@ -296,8 +474,12 @@ function DocumentUploadPage() {
                 {categories.map(
                   (item) => (
                     <option
-                      key={item.id}
-                      value={item.name}
+                      key={
+                        item.id
+                      }
+                      value={
+                        item.name
+                      }
                     >
                       {item.name}
                     </option>
@@ -325,10 +507,8 @@ function DocumentUploadPage() {
                 value={
                   documentScope
                 }
-                onChange={(e) =>
-                  setDocumentScope(
-                    e.target.value
-                  )
+                onChange={
+                  handleScopeChange
                 }
               >
                 <option value="Phòng ban">
@@ -341,6 +521,75 @@ function DocumentUploadPage() {
               </select>
             </div>
           </div>
+
+          {/* FOLDER */}
+
+          <div className="form-group">
+            <label>
+              Thư mục lưu trữ
+            </label>
+
+            <select
+              value={
+                selectedFolderId
+              }
+              onChange={
+                handleFolderChange
+              }
+            >
+              <option value="">
+                Không chọn thư mục
+              </option>
+
+              {availableFolders.map(
+                (folder) => (
+                  <option
+                    key={
+                      folder.id
+                    }
+                    value={
+                      folder.id
+                    }
+                  >
+                    {folder.name}
+                  </option>
+                )
+              )}
+            </select>
+
+            <small>
+              Thư mục dùng để nhóm tài
+              liệu theo dự án, công
+              trình hoặc chủ đề.
+            </small>
+          </div>
+
+          {selectedFolder && (
+            <div className="settings-note">
+              <strong>
+                📁{" "}
+                {
+                  selectedFolder.name
+                }
+              </strong>
+
+              <br />
+
+              Phạm vi:{" "}
+              {
+                selectedFolder.scope
+              }
+
+              {selectedFolder.description && (
+                <>
+                  <br />
+                  {
+                    selectedFolder.description
+                  }
+                </>
+              )}
+            </div>
+          )}
 
           {documentScope ===
           "Phòng ban" ? (
@@ -400,7 +649,8 @@ function DocumentUploadPage() {
 
             {file && (
               <small>
-                Đã chọn: {file.name} -{" "}
+                Đã chọn:{" "}
+                {file.name} -{" "}
                 {(
                   file.size /
                   1024 /
@@ -414,6 +664,19 @@ function DocumentUploadPage() {
               Prototype hiện hỗ trợ
               lưu file tối đa 2 MB.
             </small>
+          </div>
+
+          <div className="detail-card">
+            <h3>
+              Vị trí lưu
+            </h3>
+
+            <p>
+              Tài liệu
+              {selectedFolder
+                ? ` / ${selectedFolder.name}`
+                : " / Không có thư mục"}
+            </p>
           </div>
 
           <div className="form-actions">
