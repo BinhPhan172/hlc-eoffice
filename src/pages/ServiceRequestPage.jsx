@@ -10,27 +10,41 @@ function ServiceRequestPage() {
       title:
         "Cấp quyền sử dụng phần mềm",
       category: "CNTT",
-      requester: "Nguyễn Văn A",
-      updatedAt: "22/10/2026",
-      status: "Chờ tiếp nhận",
+      priority: "Cao",
+      requester:
+        "Nguyễn Văn A",
+      updatedAt:
+        "22/10/2026",
+      status:
+        "Chờ tiếp nhận",
     },
     {
       id: "SR-0002",
       title:
         "Hỗ trợ sửa máy in",
       category: "CNTT",
-      requester: "Trần Thị B",
-      updatedAt: "21/10/2026",
-      status: "Đang xử lý",
+      priority: "Khẩn",
+      requester:
+        "Trần Thị B",
+      updatedAt:
+        "21/10/2026",
+      status:
+        "Đang xử lý",
     },
     {
       id: "SR-0003",
       title:
         "Yêu cầu cấp văn phòng phẩm",
-      category: "Hành chính",
-      requester: "Lê Văn C",
-      updatedAt: "20/10/2026",
-      status: "Hoàn tất",
+      category:
+        "Hành chính",
+      priority:
+        "Bình thường",
+      requester:
+        "Lê Văn C",
+      updatedAt:
+        "20/10/2026",
+      status:
+        "Hoàn thành",
     },
   ]
 
@@ -48,15 +62,95 @@ function ServiceRequestPage() {
       )
     ) || {}
 
+  const normalizeStatus = (
+    value
+  ) => {
+    if (
+      value === "Hoàn tất" ||
+      value === "Chờ đánh giá"
+    ) {
+      return "Hoàn thành"
+    }
+
+    if (
+      value === "Từ chối"
+    ) {
+      return "Đã từ chối"
+    }
+
+    if (
+      value === "Chờ bổ sung"
+    ) {
+      return "Chờ bổ sung thông tin"
+    }
+
+    if (
+      value === "Chờ phân công"
+    ) {
+      return "Chờ tiếp nhận"
+    }
+
+    return value
+  }
+
+  const getDateValue = (
+    dateString
+  ) => {
+    if (!dateString) {
+      return 0
+    }
+
+    const [
+      day,
+      month,
+      year,
+    ] = dateString
+      .split("/")
+      .map(Number)
+
+    if (
+      !day ||
+      !month ||
+      !year
+    ) {
+      return 0
+    }
+
+    return new Date(
+      year,
+      month - 1,
+      day
+    ).getTime()
+  }
+
   const requests = [
     ...defaultRequests,
     ...savedRequests,
-  ].map((item) => ({
-    ...item,
-    status:
-      statusOverrides[item.id] ||
-      item.status,
-  }))
+  ]
+    .map((item) => ({
+      ...item,
+
+      priority:
+        item.priority ||
+        "Bình thường",
+
+      status:
+        normalizeStatus(
+          statusOverrides[
+            item.id
+          ] ||
+            item.status
+        ),
+    }))
+    .sort(
+      (a, b) =>
+        getDateValue(
+          b.updatedAt
+        ) -
+        getDateValue(
+          a.updatedAt
+        )
+    )
 
   const categoryOptions = [
     ...new Set(
@@ -77,40 +171,49 @@ function ServiceRequestPage() {
     useState("")
 
   const filteredRequests =
-    requests.filter((item) => {
-      const matchKeyword =
-        item.id
-          .toLowerCase()
-          .includes(
-            keyword.toLowerCase()
-          ) ||
-        item.title
-          .toLowerCase()
-          .includes(
-            keyword.toLowerCase()
-          )
+    requests.filter(
+      (item) => {
+        const searchText =
+          keyword
+            .trim()
+            .toLowerCase()
 
-      const matchCategory =
-        category === "" ||
-        item.category === category
+        const matchKeyword =
+          item.id
+            .toLowerCase()
+            .includes(
+              searchText
+            ) ||
+          item.title
+            .toLowerCase()
+            .includes(
+              searchText
+            )
 
-      const matchStatus =
-        status === "" ||
-        item.status === status
+        const matchCategory =
+          category === "" ||
+          item.category ===
+            category
 
-      return (
-        matchKeyword &&
-        matchCategory &&
-        matchStatus
-      )
-    })
+        const matchStatus =
+          status === "" ||
+          item.status ===
+            status
+
+        return (
+          matchKeyword &&
+          matchCategory &&
+          matchStatus
+        )
+      }
+    )
 
   const getStatusClass = (
     requestStatus
   ) => {
     if (
       requestStatus ===
-      "Hoàn tất"
+      "Hoàn thành"
     ) {
       return "status processing"
     }
@@ -119,19 +222,60 @@ function ServiceRequestPage() {
       requestStatus ===
         "Đang xử lý" ||
       requestStatus ===
-        "Chờ đánh giá"
+        "Đã phân công"
     ) {
       return "status waiting"
     }
 
     if (
       requestStatus ===
-      "Từ chối"
+      "Đã từ chối"
     ) {
       return "status rejected"
     }
 
     return "status pending"
+  }
+
+  const getPriorityStyle = (
+    requestPriority
+  ) => {
+    if (
+      requestPriority ===
+      "Khẩn"
+    ) {
+      return {
+        background:
+          "#fef2f2",
+        color:
+          "#b91c1c",
+        border:
+          "1px solid #fecaca",
+      }
+    }
+
+    if (
+      requestPriority ===
+      "Cao"
+    ) {
+      return {
+        background:
+          "#fff7ed",
+        color:
+          "#c2410c",
+        border:
+          "1px solid #fed7aa",
+      }
+    }
+
+    return {
+      background:
+        "#f3f4f6",
+      color:
+        "#4b5563",
+      border:
+        "1px solid #e5e7eb",
+    }
   }
 
   return (
@@ -143,8 +287,8 @@ function ServiceRequestPage() {
           </h1>
 
           <p>
-            Theo dõi và xử lý các yêu cầu
-            dịch vụ nội bộ.
+            Theo dõi và xử lý các yêu
+            cầu dịch vụ nội bộ.
           </p>
         </div>
 
@@ -212,28 +356,24 @@ function ServiceRequestPage() {
             Chờ tiếp nhận
           </option>
 
-          <option value="Chờ bổ sung">
-            Chờ bổ sung
-          </option>
-
-          <option value="Chờ phân công">
-            Chờ phân công
+          <option value="Đã phân công">
+            Đã phân công
           </option>
 
           <option value="Đang xử lý">
             Đang xử lý
           </option>
 
-          <option value="Chờ đánh giá">
-            Chờ đánh giá
+          <option value="Chờ bổ sung thông tin">
+            Chờ bổ sung thông tin
           </option>
 
-          <option value="Hoàn tất">
-            Hoàn tất
+          <option value="Hoàn thành">
+            Hoàn thành
           </option>
 
-          <option value="Từ chối">
-            Từ chối
+          <option value="Đã từ chối">
+            Đã từ chối
           </option>
         </select>
       </div>
@@ -242,13 +382,37 @@ function ServiceRequestPage() {
         <table>
           <thead>
             <tr>
-              <th>Mã yêu cầu</th>
-              <th>Nội dung</th>
-              <th>Danh mục</th>
-              <th>Người yêu cầu</th>
-              <th>Cập nhật</th>
-              <th>Trạng thái</th>
-              <th>Thao tác</th>
+              <th>
+                Mã yêu cầu
+              </th>
+
+              <th>
+                Nội dung
+              </th>
+
+              <th>
+                Danh mục
+              </th>
+
+              <th>
+                Mức ưu tiên
+              </th>
+
+              <th>
+                Người yêu cầu
+              </th>
+
+              <th>
+                Cập nhật
+              </th>
+
+              <th>
+                Trạng thái
+              </th>
+
+              <th>
+                Thao tác
+              </th>
             </tr>
           </thead>
 
@@ -265,15 +429,46 @@ function ServiceRequestPage() {
                   </td>
 
                   <td>
-                    {item.category}
+                    {
+                      item.category
+                    }
                   </td>
 
                   <td>
-                    {item.requester}
+                    <span
+                      style={{
+                        display:
+                          "inline-block",
+                        padding:
+                          "5px 9px",
+                        borderRadius:
+                          "999px",
+                        fontSize:
+                          "12px",
+                        fontWeight:
+                          "600",
+
+                        ...getPriorityStyle(
+                          item.priority
+                        ),
+                      }}
+                    >
+                      {
+                        item.priority
+                      }
+                    </span>
                   </td>
 
                   <td>
-                    {item.updatedAt}
+                    {
+                      item.requester
+                    }
+                  </td>
+
+                  <td>
+                    {
+                      item.updatedAt
+                    }
                   </td>
 
                   <td>
@@ -282,7 +477,9 @@ function ServiceRequestPage() {
                         item.status
                       )}
                     >
-                      {item.status}
+                      {
+                        item.status
+                      }
                     </span>
                   </td>
 
@@ -305,10 +502,11 @@ function ServiceRequestPage() {
               0 && (
               <tr>
                 <td
-                  colSpan="7"
+                  colSpan="8"
                   className="empty-table"
                 >
-                  Không tìm thấy yêu cầu phù hợp.
+                  Không tìm thấy yêu cầu
+                  phù hợp.
                 </td>
               </tr>
             )}

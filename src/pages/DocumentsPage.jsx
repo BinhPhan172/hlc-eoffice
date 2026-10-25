@@ -13,6 +13,17 @@ function DocumentsPage() {
     "Phạm Văn D",
   ]
 
+  const prototypeRoles = [
+    {
+      value: "employee",
+      label: "CBNV",
+    },
+    {
+      value: "records_clerk",
+      label: "Văn thư",
+    },
+  ]
+
   const shareOptions = [
     {
       id: "user-01",
@@ -29,86 +40,53 @@ function DocumentsPage() {
       name: "Phạm Văn D",
       type: "Cá nhân",
     },
-    {
-      id: "department-01",
-      name: "Phòng Hành chính",
-      type: "Phòng ban",
-    },
-    {
-      id: "department-02",
-      name: "Phòng Kinh doanh",
-      type: "Phòng ban",
-    },
-    {
-      id: "department-03",
-      name: "Phòng CNTT",
-      type: "Phòng ban",
-    },
   ]
 
   const defaultDocuments = [
     {
       id: "TL-0001",
-
       name:
         "Quy chế quản lý tài liệu nội bộ",
-
-      category:
-        "Quy chế",
-
-      version:
-        "v1.0",
-
+      category: "Quy chế",
+      documentScope:
+        "Dùng chung",
+      version: "v1.0",
       updatedAt:
         "22/10/2026",
-
       status:
         "Đã tiếp nhận",
-
       uploader:
         "Nguyễn Văn A",
     },
-
     {
       id: "TL-0002",
-
       name:
         "Hướng dẫn sử dụng hệ thống E-Office",
-
       category:
         "Hướng dẫn",
-
-      version:
-        "v2.1",
-
+      documentScope:
+        "Dùng chung",
+      version: "v2.1",
       updatedAt:
         "21/10/2026",
-
       status:
         "Đã tiếp nhận",
-
       uploader:
         "Trần Thị B",
     },
-
     {
       id: "TL-0003",
-
       name:
         "Biên bản họp dự án tháng 10",
-
       category:
         "Biên bản",
-
-      version:
-        "v1.0",
-
+      documentScope:
+        "Dùng chung",
+      version: "v1.0",
       updatedAt:
         "20/10/2026",
-
       status:
         "Chờ tiếp nhận",
-
       uploader:
         "Lê Văn C",
     },
@@ -147,6 +125,11 @@ function DocumentsPage() {
       "hlcDocumentPrototypeUser"
     )
 
+  const savedPrototypeRole =
+    localStorage.getItem(
+      "hlcDocumentPrototypeRole"
+    ) || "employee"
+
   const [
     currentUser,
     setCurrentUser,
@@ -155,18 +138,24 @@ function DocumentsPage() {
       "Nguyễn Văn A"
   )
 
+  const [
+    currentRole,
+    setCurrentRole,
+  ] = useState(
+    savedPrototypeRole
+  )
+
   const [keyword, setKeyword] =
     useState("")
 
   const [category, setCategory] =
     useState("")
 
-  const [status, setStatus] =
+  const [scope, setScope] =
     useState("")
 
-  // =========================
-  // HỖ TRỢ DỮ LIỆU CHIA SẺ CŨ
-  // =========================
+  const [status, setStatus] =
+    useState("")
 
   const normalizeShares = (
     rawShares
@@ -179,7 +168,6 @@ function DocumentsPage() {
 
     return rawShares
       .map((share) => {
-        // Dữ liệu cũ chỉ lưu ID
         if (
           typeof share ===
           "string"
@@ -197,13 +185,10 @@ function DocumentsPage() {
           return {
             recipientId:
               option.id,
-
             recipientName:
               option.name,
-
             recipientType:
               option.type,
-
             permissions: [
               "view",
               "download",
@@ -232,57 +217,160 @@ function DocumentsPage() {
       .filter(Boolean)
   }
 
-  // =========================
-  // GHÉP TÀI LIỆU
-  // =========================
+  const normalizeVersionStatus = (
+    version
+  ) =>
+    version.status ||
+    "Đã tiếp nhận"
+
+  const getDateValue = (
+    dateString
+  ) => {
+    if (!dateString) {
+      return 0
+    }
+
+    const [
+      day,
+      month,
+      year,
+    ] = dateString
+      .split("/")
+      .map(Number)
+
+    if (
+      !day ||
+      !month ||
+      !year
+    ) {
+      return 0
+    }
+
+    return new Date(
+      year,
+      month - 1,
+      day
+    ).getTime()
+  }
+
+  const getIdNumber = (
+    value
+  ) => {
+    const match =
+      value?.match(
+        /(\d+)$/
+      )
+
+    return match
+      ? Number(match[1])
+      : 0
+  }
 
   const allDocuments = [
     ...defaultDocuments,
     ...savedDocuments,
-  ].map((doc) => {
-    const versions =
-      versionHistory[
-        doc.id
-      ] || []
-
-    const latestVersion =
-      versions.length > 0
-        ? versions[
-            versions.length - 1
-          ]
-        : null
-
-    return {
-      ...doc,
-
-      status:
-        statusOverrides[
+  ]
+    .map((doc) => {
+      const versions =
+        versionHistory[
           doc.id
-        ] ||
-        doc.status,
+        ] || []
 
-      version:
-        latestVersion
-          ?.version ||
-        doc.version,
+      const acceptedVersions =
+        versions.filter(
+          (version) =>
+            normalizeVersionStatus(
+              version
+            ) ===
+            "Đã tiếp nhận"
+        )
 
-      updatedAt:
-        latestVersion
-          ?.updatedAt ||
-        latestVersion
-          ?.date ||
-        doc.updatedAt ||
-        doc.date,
-    }
-  })
+      const activeVersion =
+        acceptedVersions.length >
+        0
+          ? acceptedVersions[
+              acceptedVersions.length -
+                1
+            ]
+          : null
 
-  // =========================
-  // KIỂM TRA QUYỀN
-  // =========================
+      const pendingVersions =
+        versions.filter(
+          (version) =>
+            normalizeVersionStatus(
+              version
+            ) ===
+            "Chờ tiếp nhận"
+        )
+
+      return {
+        ...doc,
+
+        documentScope:
+          doc.documentScope ||
+          "Dùng chung",
+
+        status:
+          statusOverrides[
+            doc.id
+          ] ||
+          doc.status,
+
+        version:
+          activeVersion
+            ?.version ||
+          doc.version,
+
+        updatedAt:
+          activeVersion?.date ||
+          doc.updatedAt ||
+          doc.date,
+
+        pendingVersionCount:
+          pendingVersions.length,
+      }
+    })
+    .sort((a, b) => {
+      const dateDiff =
+        getDateValue(
+          b.updatedAt
+        ) -
+        getDateValue(
+          a.updatedAt
+        )
+
+      if (dateDiff !== 0) {
+        return dateDiff
+      }
+
+      return (
+        getIdNumber(b.id) -
+        getIdNumber(a.id)
+      )
+    })
+
+  const isRecordsClerk =
+    currentRole ===
+    "records_clerk"
 
   const getAccessInfo = (
     doc
   ) => {
+    if (
+      isRecordsClerk &&
+      doc.documentScope ===
+        "Dùng chung"
+    ) {
+      return {
+        canView: true,
+        canDownload: true,
+        accessLabel:
+          "Văn thư",
+        permissionLabel:
+          "Xem, Tải xuống, Tiếp nhận/Từ chối",
+      }
+    }
+
     const isOwner =
       doc.uploader ===
       currentUser
@@ -291,7 +379,6 @@ function DocumentsPage() {
       return {
         canView: true,
         canDownload: true,
-        isOwner: true,
         accessLabel:
           "Chủ tài liệu",
         permissionLabel:
@@ -319,11 +406,8 @@ function DocumentsPage() {
       return {
         canView: false,
         canDownload: false,
-        isOwner: false,
-        accessLabel:
-          "",
-        permissionLabel:
-          "",
+        accessLabel: "",
+        permissionLabel: "",
       }
     }
 
@@ -354,37 +438,24 @@ function DocumentsPage() {
     return {
       canView,
       canDownload,
-      isOwner: false,
-
       accessLabel:
         "Được chia sẻ",
-
       permissionLabel:
-        permissions.join(
-          ", "
-        ),
+        permissions.join(", "),
     }
   }
 
-  // Chỉ lấy tài liệu user
-  // hiện tại thực sự được xem.
   const accessibleDocuments =
     allDocuments
       .map((doc) => ({
         ...doc,
         access:
-          getAccessInfo(
-            doc
-          ),
+          getAccessInfo(doc),
       }))
       .filter(
         (doc) =>
           doc.access.canView
       )
-
-  // =========================
-  // FILTER
-  // =========================
 
   const filteredDocuments =
     accessibleDocuments.filter(
@@ -411,6 +482,11 @@ function DocumentsPage() {
           doc.category ===
             category
 
+        const matchScope =
+          scope === "" ||
+          doc.documentScope ===
+            scope
+
         const matchStatus =
           status === "" ||
           doc.status ===
@@ -419,6 +495,7 @@ function DocumentsPage() {
         return (
           matchKeyword &&
           matchCategory &&
+          matchScope &&
           matchStatus
         )
       }
@@ -435,6 +512,20 @@ function DocumentsPage() {
     localStorage.setItem(
       "hlcDocumentPrototypeUser",
       user
+    )
+  }
+
+  const handleRoleChange = (
+    event
+  ) => {
+    const role =
+      event.target.value
+
+    setCurrentRole(role)
+
+    localStorage.setItem(
+      "hlcDocumentPrototypeRole",
+      role
     )
   }
 
@@ -472,68 +563,79 @@ function DocumentsPage() {
           </p>
         </div>
 
-        <button
-          className="primary-button"
-          onClick={() =>
-            navigate(
-              "/documents/upload"
-            )
-          }
-        >
-          + Tải lên tài liệu
-        </button>
+        {!isRecordsClerk && (
+          <button
+            className="primary-button"
+            onClick={() =>
+              navigate(
+                "/documents/upload"
+              )
+            }
+          >
+            + Tải lên tài liệu
+          </button>
+        )}
       </div>
-
-      {/* USER MÔ PHỎNG */}
 
       <div className="detail-card">
         <h2>
-          Người dùng mô phỏng
+          Vai trò mô phỏng
         </h2>
 
-        <p>
-          Chọn người đang truy cập để
-          kiểm thử danh sách tài liệu
-          theo quyền được cấp.
-        </p>
+        <div className="detail-grid">
+          <div className="form-group">
+            <label>
+              Người đang truy cập
+            </label>
 
-        <div className="form-group">
-          <label>
-            Người đang truy cập
-          </label>
+            <select
+              value={currentUser}
+              onChange={
+                handleUserChange
+              }
+            >
+              {prototypeUsers.map(
+                (user) => (
+                  <option
+                    key={user}
+                    value={user}
+                  >
+                    {user}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
 
-          <select
-            value={
-              currentUser
-            }
-            onChange={
-              handleUserChange
-            }
-          >
-            {prototypeUsers.map(
-              (user) => (
-                <option
-                  key={user}
-                  value={user}
-                >
-                  {user}
-                </option>
-              )
-            )}
-          </select>
-        </div>
+          <div className="form-group">
+            <label>
+              Vai trò
+            </label>
 
-        <div className="settings-note">
-          Đang hiển thị tài liệu mà{" "}
-          <strong>
-            {currentUser}
-          </strong>{" "}
-          sở hữu hoặc được chia sẻ quyền
-          Xem.
+            <select
+              value={currentRole}
+              onChange={
+                handleRoleChange
+              }
+            >
+              {prototypeRoles.map(
+                (role) => (
+                  <option
+                    key={
+                      role.value
+                    }
+                    value={
+                      role.value
+                    }
+                  >
+                    {role.label}
+                  </option>
+                )
+              )}
+            </select>
+          </div>
         </div>
       </div>
-
-      {/* FILTER */}
 
       <div className="filter-bar">
         <input
@@ -577,6 +679,27 @@ function DocumentsPage() {
         </select>
 
         <select
+          value={scope}
+          onChange={(e) =>
+            setScope(
+              e.target.value
+            )
+          }
+        >
+          <option value="">
+            Tất cả phạm vi
+          </option>
+
+          <option value="Phòng ban">
+            Phòng ban
+          </option>
+
+          <option value="Dùng chung">
+            Dùng chung
+          </option>
+        </select>
+
+        <select
           value={status}
           onChange={(e) =>
             setStatus(
@@ -602,104 +725,97 @@ function DocumentsPage() {
         </select>
       </div>
 
-      {/* TABLE */}
-
       <div className="document-table">
         <table>
           <thead>
             <tr>
-              <th>
-                Mã tài liệu
-              </th>
-
-              <th>
-                Tên tài liệu
-              </th>
-
-              <th>
-                Danh mục
-              </th>
-
-              <th>
-                Phiên bản
-              </th>
-
-              <th>
-                Cập nhật
-              </th>
-
-              <th>
-                Quyền truy cập
-              </th>
-
-              <th>
-                Trạng thái
-              </th>
-
-              <th>
-                Thao tác
-              </th>
+              <th>Mã tài liệu</th>
+              <th>Tên tài liệu</th>
+              <th>Danh mục</th>
+              <th>Phạm vi</th>
+              <th>Phiên bản hiện hành</th>
+              <th>Cập nhật</th>
+              <th>Quyền truy cập</th>
+              <th>Trạng thái</th>
+              <th>Thao tác</th>
             </tr>
           </thead>
 
           <tbody>
             {filteredDocuments.map(
               (doc) => (
-                <tr
-                  key={doc.id}
-                >
+                <tr key={doc.id}>
                   <td>
                     {doc.id}
                   </td>
 
                   <td className="document-name">
                     {doc.name}
-                  </td>
 
-                  <td>
-                    {
-                      doc.category
-                    }
-                  </td>
-
-                  <td>
-                    {
-                      doc.version
-                    }
-                  </td>
-
-                  <td>
-                    {
-                      doc.updatedAt
-                    }
-                  </td>
-
-                  <td>
-                    <div>
-                      <strong>
-                        {
-                          doc.access
-                            .accessLabel
-                        }
-                      </strong>
-
+                    {doc.pendingVersionCount >
+                      0 && (
                       <div
                         style={{
                           marginTop:
-                            "4px",
-
-                          color:
-                            "#6b7280",
-
+                            "5px",
                           fontSize:
-                            "13px",
+                            "12px",
+                          color:
+                            "#b45309",
                         }}
                       >
+                        Có{" "}
                         {
-                          doc.access
-                            .permissionLabel
-                        }
+                          doc.pendingVersionCount
+                        }{" "}
+                        phiên bản đang
+                        chờ tiếp nhận
                       </div>
+                    )}
+                  </td>
+
+                  <td>
+                    {doc.category}
+                  </td>
+
+                  <td>
+                    {
+                      doc.documentScope
+                    }
+                  </td>
+
+                  <td>
+                    <strong>
+                      {doc.version}
+                    </strong>
+                  </td>
+
+                  <td>
+                    {doc.updatedAt}
+                  </td>
+
+                  <td>
+                    <strong>
+                      {
+                        doc.access
+                          .accessLabel
+                      }
+                    </strong>
+
+                    <div
+                      style={{
+                        marginTop:
+                          "4px",
+                        fontSize:
+                          "13px",
+                        color:
+                          "#6b7280",
+                      }}
+                    >
+                      {
+                        doc.access
+                          .permissionLabel
+                      }
                     </div>
                   </td>
 
@@ -732,12 +848,11 @@ function DocumentsPage() {
               0 && (
               <tr>
                 <td
-                  colSpan="8"
+                  colSpan="9"
                   className="empty-table"
                 >
-                  {currentUser} hiện chưa
-                  có tài liệu nào được
-                  phép xem.
+                  Không có tài liệu phù
+                  hợp.
                 </td>
               </tr>
             )}

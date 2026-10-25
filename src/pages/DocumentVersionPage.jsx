@@ -11,21 +11,27 @@ function DocumentVersionPage() {
   const defaultDocuments = [
     {
       id: "TL-0001",
-      name:
-        "Quy chế quản lý tài liệu nội bộ",
+      name: "Quy chế quản lý tài liệu nội bộ",
       version: "v1.0",
+      documentScope: "Dùng chung",
+      uploader: "Nguyễn Văn A",
+      status: "Đã tiếp nhận",
     },
     {
       id: "TL-0002",
-      name:
-        "Hướng dẫn sử dụng hệ thống E-Office",
+      name: "Hướng dẫn sử dụng hệ thống E-Office",
       version: "v2.1",
+      documentScope: "Dùng chung",
+      uploader: "Trần Thị B",
+      status: "Đã tiếp nhận",
     },
     {
       id: "TL-0003",
-      name:
-        "Biên bản họp dự án tháng 10",
+      name: "Biên bản họp dự án tháng 10",
       version: "v1.0",
+      documentScope: "Dùng chung",
+      uploader: "Lê Văn C",
+      status: "Chờ tiếp nhận",
     },
   ]
 
@@ -36,16 +42,35 @@ function DocumentVersionPage() {
       )
     ) || []
 
+  const statusOverrides =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcDocumentStatus"
+      )
+    ) || {}
+
   const allDocuments = [
     ...defaultDocuments,
     ...savedDocuments,
-  ]
+  ].map((item) => ({
+    ...item,
+    documentScope:
+      item.documentScope ||
+      "Dùng chung",
+  }))
 
   const document =
     allDocuments.find(
       (item) =>
         item.id === id
     )
+
+  const currentUser =
+    localStorage.getItem(
+      "hlcDocumentPrototypeUser"
+    ) ||
+    document?.uploader ||
+    "Nguyễn Văn A"
 
   const savedVersions =
     JSON.parse(
@@ -57,11 +82,38 @@ function DocumentVersionPage() {
   const documentVersions =
     savedVersions[id] || []
 
-  const currentVersion =
+  const documentStatus =
+    document
+      ? statusOverrides[id] ||
+        document.status
+      : ""
+
+  const normalizeVersionStatus = (
+    version
+  ) =>
+    version.status ||
+    "Đã tiếp nhận"
+
+  const acceptedVersions =
+    documentVersions.filter(
+      (version) =>
+        normalizeVersionStatus(
+          version
+        ) === "Đã tiếp nhận"
+    )
+
+  const currentActiveVersion =
+    acceptedVersions.length > 0
+      ? acceptedVersions[
+          acceptedVersions.length - 1
+        ].version
+      : document?.version ||
+        "v1.0"
+
+  const latestCreatedVersion =
     documentVersions.length > 0
       ? documentVersions[
-          documentVersions.length -
-            1
+          documentVersions.length - 1
         ].version
       : document?.version ||
         "v1.0"
@@ -69,14 +121,14 @@ function DocumentVersionPage() {
   const getNextVersion = (
     version
   ) => {
-    const cleanVersion =
+    const clean =
       version.replace(
         "v",
         ""
       )
 
     const parts =
-      cleanVersion.split(".")
+      clean.split(".")
 
     const major =
       Number(parts[0]) || 1
@@ -89,7 +141,7 @@ function DocumentVersionPage() {
 
   const nextVersion =
     getNextVersion(
-      currentVersion
+      latestCreatedVersion
     )
 
   const [file, setFile] =
@@ -101,121 +153,10 @@ function DocumentVersionPage() {
   const [error, setError] =
     useState("")
 
-  const [uploading, setUploading] =
-    useState(false)
-
-  const readFileAsDataUrl = (
-    selectedFile
-  ) => {
-    return new Promise(
-      (resolve, reject) => {
-        const reader =
-          new FileReader()
-
-        reader.onload = () => {
-          resolve(reader.result)
-        }
-
-        reader.onerror = () => {
-          reject(
-            new Error(
-              "Không thể đọc file."
-            )
-          )
-        }
-
-        reader.readAsDataURL(
-          selectedFile
-        )
-      }
-    )
-  }
-
-  const handleUpdate = async () => {
-    if (!file) {
-      setError(
-        "Vui lòng chọn file phiên bản mới."
-      )
-      return
-    }
-
-    if (
-      file.size >
-      2 * 1024 * 1024
-    ) {
-      setError(
-        "Prototype hiện chỉ lưu file tối đa 2 MB."
-      )
-      return
-    }
-
-    setError("")
-    setUploading(true)
-
-    try {
-      const fileData =
-        await readFileAsDataUrl(
-          file
-        )
-
-      const current =
-        JSON.parse(
-          localStorage.getItem(
-            "hlcDocumentVersions"
-          )
-        ) || {}
-
-      const oldVersions =
-        current[id] || []
-
-      const newVersion = {
-        version:
-          nextVersion,
-
-        updater:
-          "Nguyễn Văn A",
-
-        date:
-          new Date().toLocaleDateString(
-            "vi-VN"
-          ),
-
-        fileName:
-          file.name,
-
-        fileSize: `${(
-          file.size /
-          1024 /
-          1024
-        ).toFixed(2)} MB`,
-
-        fileData,
-
-        note:
-          note.trim(),
-      }
-
-      current[id] = [
-        ...oldVersions,
-        newVersion,
-      ]
-
-      localStorage.setItem(
-        "hlcDocumentVersions",
-        JSON.stringify(current)
-      )
-
-      navigate(
-        `/documents/${id}`
-      )
-    } catch (err) {
-      setError(
-        "Không thể lưu file. Vui lòng thử lại với file nhỏ hơn."
-      )
-    } finally {
-      setUploading(false)
-    }
-  }
+  const [
+    uploading,
+    setUploading,
+  ] = useState(false)
 
   if (!document) {
     return (
@@ -236,6 +177,158 @@ function DocumentVersionPage() {
       </div>
     )
   }
+
+  const isOwner =
+    currentUser ===
+    document.uploader
+
+  const canUpdate =
+    isOwner &&
+    (
+      document.documentScope ===
+        "Phòng ban" ||
+      documentStatus ===
+        "Đã tiếp nhận"
+    )
+
+  const readFileAsDataUrl = (
+    selectedFile
+  ) =>
+    new Promise(
+      (resolve, reject) => {
+        const reader =
+          new FileReader()
+
+        reader.onload = () =>
+          resolve(
+            reader.result
+          )
+
+        reader.onerror = () =>
+          reject(
+            new Error(
+              "Không thể đọc file."
+            )
+          )
+
+        reader.readAsDataURL(
+          selectedFile
+        )
+      }
+    )
+
+  const handleUpdate =
+    async () => {
+      if (!canUpdate) {
+        setError(
+          "Bạn không có quyền cập nhật phiên bản tài liệu này."
+        )
+        return
+      }
+
+      if (!file) {
+        setError(
+          "Vui lòng chọn file phiên bản mới."
+        )
+        return
+      }
+
+      if (
+        file.size >
+        2 * 1024 * 1024
+      ) {
+        setError(
+          "Prototype hiện chỉ lưu file tối đa 2 MB."
+        )
+        return
+      }
+
+      setError("")
+      setUploading(true)
+
+      try {
+        const fileData =
+          await readFileAsDataUrl(
+            file
+          )
+
+        const current =
+          JSON.parse(
+            localStorage.getItem(
+              "hlcDocumentVersions"
+            )
+          ) || {}
+
+        const oldVersions =
+          current[id] || []
+
+        const isCommonDocument =
+          document.documentScope ===
+          "Dùng chung"
+
+        const newVersion = {
+          version:
+            nextVersion,
+
+          updater:
+            currentUser,
+
+          date:
+            new Date().toLocaleDateString(
+              "vi-VN"
+            ),
+
+          fileName:
+            file.name,
+
+          fileSize: `${(
+            file.size /
+            1024 /
+            1024
+          ).toFixed(2)} MB`,
+
+          fileData,
+
+          note:
+            note.trim(),
+
+          status:
+            isCommonDocument
+              ? "Chờ tiếp nhận"
+              : "Đã tiếp nhận",
+
+          reviewedBy: "",
+
+          reviewedAt: "",
+
+          reviewNote: "",
+        }
+
+        current[id] = [
+          ...oldVersions,
+          newVersion,
+        ]
+
+        localStorage.setItem(
+          "hlcDocumentVersions",
+          JSON.stringify(
+            current
+          )
+        )
+
+        navigate(
+          `/documents/${id}`
+        )
+      } catch (err) {
+        console.error(err)
+
+        setError(
+          "Không thể lưu file phiên bản mới."
+        )
+      } finally {
+        setUploading(false)
+      }
+    }
 
   return (
     <div>
@@ -259,6 +352,13 @@ function DocumentVersionPage() {
         </p>
       </div>
 
+      {!canUpdate && (
+        <div className="reject-message">
+          Bạn không có quyền cập nhật
+          phiên bản tài liệu này.
+        </div>
+      )}
+
       <div className="detail-card">
         {error && (
           <div className="form-error">
@@ -269,11 +369,13 @@ function DocumentVersionPage() {
         <div className="version-info">
           <div>
             <span className="detail-label">
-              Phiên bản hiện tại
+              Phiên bản hiện hành
             </span>
 
             <h3>
-              {currentVersion}
+              {
+                currentActiveVersion
+              }
             </h3>
           </div>
 
@@ -288,6 +390,35 @@ function DocumentVersionPage() {
           </div>
         </div>
 
+        {document.documentScope ===
+        "Dùng chung" ? (
+          <div className="settings-note">
+            <strong>
+              Tài liệu dùng chung:
+            </strong>{" "}
+            phiên bản mới sẽ ở trạng
+            thái{" "}
+            <strong>
+              Chờ tiếp nhận
+            </strong>
+            . Phiên bản{" "}
+            <strong>
+              {currentActiveVersion}
+            </strong>{" "}
+            vẫn là bản hiện hành cho đến
+            khi Văn thư tiếp nhận bản
+            mới.
+          </div>
+        ) : (
+          <div className="settings-note">
+            <strong>
+              Tài liệu phòng ban:
+            </strong>{" "}
+            phiên bản mới có hiệu lực
+            ngay sau khi cập nhật.
+          </div>
+        )}
+
         <div className="upload-form">
           <div className="form-group">
             <label>
@@ -296,9 +427,12 @@ function DocumentVersionPage() {
 
             <input
               type="file"
+              disabled={!canUpdate}
               onChange={(e) =>
                 setFile(
-                  e.target.files[0]
+                  e.target
+                    .files[0] ||
+                    null
                 )
               }
             />
@@ -317,8 +451,8 @@ function DocumentVersionPage() {
             )}
 
             <small>
-              Prototype hiện hỗ trợ
-              lưu file tối đa 2 MB.
+              Prototype hiện hỗ trợ file
+              tối đa 2 MB.
             </small>
           </div>
 
@@ -329,6 +463,7 @@ function DocumentVersionPage() {
 
             <textarea
               rows="4"
+              disabled={!canUpdate}
               placeholder="Nhập nội dung thay đổi..."
               value={note}
               onChange={(e) =>
@@ -353,10 +488,13 @@ function DocumentVersionPage() {
 
             <button
               className="primary-button"
+              disabled={
+                uploading ||
+                !canUpdate
+              }
               onClick={
                 handleUpdate
               }
-              disabled={uploading}
             >
               {uploading
                 ? "Đang cập nhật..."

@@ -1,5 +1,4 @@
 import { useState } from "react"
-
 import {
   useNavigate,
   useParams,
@@ -16,103 +15,68 @@ function ApprovalDetailPage() {
     "Phạm Văn D",
   ]
 
-  const savedPrototypeUser =
-    localStorage.getItem(
-      "hlcPrototypeUser"
-    ) || "Nguyễn Văn A"
-
-  const [
-    currentUser,
-    setCurrentUser,
-  ] = useState(
-    savedPrototypeUser
-  )
-
   const defaultApprovals = [
     {
       id: "TK-0001",
-      name:
-        "Đề nghị mua sắm thiết bị",
+      name: "Đề nghị mua sắm thiết bị",
       description:
         "Đề nghị phê duyệt kế hoạch mua sắm thiết bị phục vụ công việc.",
-      documentType:
-        "Khác",
-      priority:
-        "Bình thường",
-      creator:
-        "Nguyễn Văn A",
-      approver:
-        "Trần Thị B",
-      signer:
-        "Lê Văn C",
-      updatedAt:
-        "22/10/2026",
-      status:
-        "Chờ phê duyệt",
+      documentType: "Khác",
+      priority: "Bình thường",
+      creator: "Nguyễn Văn A",
+      approver: "Trần Thị B",
+      signer: "Lê Văn C",
+      updatedAt: "22/10/2026",
+      status: "Chờ phê duyệt",
       fileName:
         "de-nghi-mua-sam-thiet-bi.pdf",
-      fileSize:
-        "2.1 MB",
+      fileSize: "2.1 MB",
       fileData: "",
-      signatureMethod: "",
+      fileType: "application/pdf",
+      signatureMethod:
+        "VNPT Smart CA",
       signaturePosition: null,
     },
-
     {
       id: "TK-0002",
       name:
         "Quyết định điều động nhân sự",
       description:
         "Hồ sơ quyết định điều động nhân sự.",
-      documentType:
-        "Khác",
-      priority:
-        "Cao",
-      creator:
-        "Trần Thị B",
-      approver:
-        "Lê Văn C",
-      signer:
-        "Phạm Văn D",
-      updatedAt:
-        "21/10/2026",
-      status:
-        "Chờ ký",
+      documentType: "Khác",
+      priority: "Cao",
+      creator: "Trần Thị B",
+      approver: "Lê Văn C",
+      signer: "Phạm Văn D",
+      updatedAt: "21/10/2026",
+      status: "Chờ ký",
       fileName:
         "quyet-dinh-dieu-dong.pdf",
-      fileSize:
-        "1.5 MB",
+      fileSize: "1.5 MB",
       fileData: "",
+      fileType: "application/pdf",
       signatureMethod:
         "VNPT Smart CA",
       signaturePosition: null,
     },
-
     {
       id: "TK-0003",
       name:
         "Đề xuất kế hoạch đào tạo",
       description:
         "Đề xuất kế hoạch đào tạo nội bộ.",
-      documentType:
-        "Khác",
-      priority:
-        "Bình thường",
-      creator:
-        "Lê Văn C",
-      approver:
-        "Phạm Văn D",
-      signer:
-        "Phạm Văn D",
-      updatedAt:
-        "20/10/2026",
-      status:
-        "Hoàn tất",
+      documentType: "Khác",
+      priority: "Bình thường",
+      creator: "Lê Văn C",
+      approver: "Phạm Văn D",
+      signer: "Phạm Văn D",
+      updatedAt: "20/10/2026",
+      status: "Hoàn tất",
       fileName:
         "ke-hoach-dao-tao.pdf",
-      fileSize:
-        "3.0 MB",
+      fileSize: "3.0 MB",
       fileData: "",
+      fileType: "application/pdf",
       signatureMethod:
         "VNPT Smart CA",
       signaturePosition: null,
@@ -140,24 +104,31 @@ function ApprovalDetailPage() {
       )
     ) || {}
 
-  const rejectReasons =
+  const savedWorkflowStates =
     JSON.parse(
       localStorage.getItem(
-        "hlcApprovalRejectReasons"
+        "hlcApprovalWorkflowStates"
       )
     ) || {}
 
-  const savedDelegates =
+  const savedDelegatesRaw =
     JSON.parse(
       localStorage.getItem(
         "hlcApprovalDelegates"
       )
     ) || {}
 
-  const signatures =
+  const signaturesRaw =
     JSON.parse(
       localStorage.getItem(
         "hlcApprovalSignatures"
+      )
+    ) || {}
+
+  const rejectReasons =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcApprovalRejectReasons"
       )
     ) || {}
 
@@ -172,48 +143,28 @@ function ApprovalDetailPage() {
         item.id === id
     )
 
-  const [status, setStatus] =
-    useState(
-      approval
-        ? statusOverrides[id] ||
-            approval.status
-        : ""
-    )
+  const savedPrototypeUser =
+    localStorage.getItem(
+      "hlcPrototypeUser"
+    ) || "Nguyễn Văn A"
+
+  const [
+    currentUser,
+    setCurrentUser,
+  ] = useState(
+    savedPrototypeUser
+  )
 
   const [
     comments,
     setComments,
   ] = useState(
-    savedComments[id] ||
-      []
+    savedComments[id] || []
   )
 
   const [
-    commentText,
-    setCommentText,
-  ] = useState("")
-
-  const [
-    rejectReason,
-    setRejectReason,
-  ] = useState("")
-
-  const [
-    delegate,
-    setDelegate,
-  ] = useState(
-    savedDelegates[id] ||
-      ""
-  )
-
-  const [
-    selectedDelegate,
-    setSelectedDelegate,
-  ] = useState("")
-
-  const [
-    showCommentForm,
-    setShowCommentForm,
+    showOpinionForm,
+    setShowOpinionForm,
   ] = useState(false)
 
   const [
@@ -226,6 +177,26 @@ function ApprovalDetailPage() {
     setShowDelegateForm,
   ] = useState(false)
 
+  const [
+    selectedHandler,
+    setSelectedHandler,
+  ] = useState(null)
+
+  const [
+    opinionText,
+    setOpinionText,
+  ] = useState("")
+
+  const [
+    rejectReason,
+    setRejectReason,
+  ] = useState("")
+
+  const [
+    selectedDelegate,
+    setSelectedDelegate,
+  ] = useState("")
+
   if (!approval) {
     return (
       <div>
@@ -235,9 +206,7 @@ function ApprovalDetailPage() {
 
         <button
           onClick={() =>
-            navigate(
-              "/approval"
-            )
+            navigate("/approval")
           }
         >
           ← Quay lại danh sách
@@ -246,44 +215,64 @@ function ApprovalDetailPage() {
     )
   }
 
+  // =========================
+  // WORKFLOW
+  // =========================
+
   const getWorkflow = () => {
     if (
       Array.isArray(
         approval.approvalFlow
       ) &&
-      approval.approvalFlow
-        .length > 0 &&
-      approval.approvalFlow.some(
-        (step) =>
-          Array.isArray(
-            step.handlers
-          )
-      )
+      approval.approvalFlow.length >
+        0
     ) {
-      return approval.approvalFlow
+      return approval.approvalFlow.map(
+        (step, index) => ({
+          ...step,
+
+          step:
+            step.step ||
+            index + 1,
+
+          name:
+            step.name ||
+            `Bước ${index + 1}`,
+
+          flowType:
+            step.flowType ||
+            "Tuần tự",
+
+          handlers:
+            Array.isArray(
+              step.handlers
+            )
+              ? step.handlers
+              : [],
+        })
+      )
     }
 
-    const legacySteps = []
+    const legacy = []
 
-    if (
-      approval.approver
-    ) {
-      legacySteps.push({
-        id:
-          "legacy-approval",
+    if (approval.approver) {
+      legacy.push({
+        id: "legacy-control",
         step: 1,
-        name:
-          "Phê duyệt",
-        flowType:
-          "Tuần tự",
+        name: "Kiểm soát",
+        flowType: "Tuần tự",
+
         handlers: [
           {
             id:
-              "legacy-approver",
+              "legacy-control-handler",
+
             user:
               approval.approver,
+
             actionType:
               "Kiểm soát",
+
             signatureMethod:
               "",
           },
@@ -291,27 +280,27 @@ function ApprovalDetailPage() {
       })
     }
 
-    if (
-      approval.signer
-    ) {
-      legacySteps.push({
-        id:
-          "legacy-sign",
+    if (approval.signer) {
+      legacy.push({
+        id: "legacy-sign",
         step:
-          legacySteps.length +
-          1,
-        name:
-          "Ký duyệt",
-        flowType:
-          "Tuần tự",
+          legacy.length + 1,
+
+        name: "Ký duyệt",
+
+        flowType: "Tuần tự",
+
         handlers: [
           {
             id:
-              "legacy-signer",
+              "legacy-sign-handler",
+
             user:
               approval.signer,
+
             actionType:
               "Ký duyệt",
+
             signatureMethod:
               approval.signatureMethod ||
               "",
@@ -320,55 +309,332 @@ function ApprovalDetailPage() {
       })
     }
 
-    return legacySteps
+    return legacy
   }
 
   const workflow =
     getWorkflow()
 
-  const allHandlers =
+  const flatHandlers =
     workflow.flatMap(
       (step) =>
-        step.handlers ||
-        []
+        step.handlers
     )
 
-  const workflowApprover =
-    allHandlers.find(
-      (handler) =>
-        handler.actionType !==
-          "Ký duyệt" &&
-        handler.user
-    )?.user || ""
+  const sourceStatus =
+    statusOverrides[id] ||
+    approval.status ||
+    "Đang xử lý"
 
-  const workflowSignerHandler =
-    allHandlers.find(
+  const normalizeTerminalStatus = (
+    value
+  ) => {
+    if (
+      value === "Hoàn tất"
+    ) {
+      return "Hoàn thành"
+    }
+
+    if (
+      value === "Từ chối"
+    ) {
+      return "Bị từ chối"
+    }
+
+    return value
+  }
+
+  const createInitialHandlerStates =
+    () => {
+      const states = {}
+
+      flatHandlers.forEach(
+        (handler) => {
+          states[handler.id] = {
+            status: "pending",
+          }
+        }
+      )
+
+      const normalizedStatus =
+        normalizeTerminalStatus(
+          sourceStatus
+        )
+
+      if (
+        normalizedStatus ===
+        "Hoàn thành"
+      ) {
+        flatHandlers.forEach(
+          (handler) => {
+            states[
+              handler.id
+            ] = {
+              status:
+                "completed",
+            }
+          }
+        )
+
+        return states
+      }
+
+      if (
+        sourceStatus ===
+          "Chờ ký" ||
+        sourceStatus ===
+          "Đang phê duyệt"
+      ) {
+        const signerIndex =
+          flatHandlers.findIndex(
+            (handler) =>
+              handler.actionType ===
+              "Ký duyệt"
+          )
+
+        if (
+          signerIndex > 0
+        ) {
+          flatHandlers
+            .slice(
+              0,
+              signerIndex
+            )
+            .forEach(
+              (handler) => {
+                states[
+                  handler.id
+                ] = {
+                  status:
+                    "completed",
+                }
+              }
+            )
+        }
+      }
+
+      return states
+    }
+
+  const [
+    handlerStates,
+    setHandlerStates,
+  ] = useState(
+    savedWorkflowStates[id]
+      ?.handlerStates ||
+      createInitialHandlerStates()
+  )
+
+  const normalizeDelegates =
+    () => {
+      const raw =
+        savedDelegatesRaw[id]
+
+      if (!raw) {
+        return {}
+      }
+
+      if (
+        typeof raw ===
+        "object"
+      ) {
+        return raw
+      }
+
+      const signer =
+        flatHandlers.find(
+          (handler) =>
+            handler.actionType ===
+            "Ký duyệt"
+        )
+
+      if (!signer) {
+        return {}
+      }
+
+      return {
+        [signer.id]: raw,
+      }
+    }
+
+  const [
+    delegates,
+    setDelegates,
+  ] = useState(
+    normalizeDelegates()
+  )
+
+  const isCompleted = (
+    handler
+  ) =>
+    handlerStates[
+      handler.id
+    ]?.status ===
+    "completed"
+
+  const isStepComplete = (
+    step
+  ) =>
+    step.handlers.every(
       (handler) =>
-        handler.actionType ===
-          "Ký duyệt" &&
-        handler.user
+        isCompleted(handler)
     )
 
-  const workflowSigner =
-    workflowSignerHandler
-      ?.user || ""
+  const currentStepIndex =
+    workflow.findIndex(
+      (step) =>
+        !isStepComplete(step)
+    )
 
-  const baseApprover =
-    approval.approver ||
-    workflowApprover ||
-    workflowSigner
+  const getActiveHandlers =
+    () => {
+      if (
+        currentStepIndex < 0
+      ) {
+        return []
+      }
 
-  const baseSigner =
-    approval.signer ||
-    workflowSigner ||
-    baseApprover
+      const step =
+        workflow[
+          currentStepIndex
+        ]
 
-  const currentSigner =
-    delegate ||
-    baseSigner
+      const pending =
+        step.handlers.filter(
+          (handler) =>
+            !isCompleted(
+              handler
+            )
+        )
 
-  const signature =
-    signatures[id]
+      if (
+        step.flowType ===
+        "Song song"
+      ) {
+        return pending
+      }
+
+      return pending.length > 0
+        ? [pending[0]]
+        : []
+    }
+
+  const activeHandlers =
+    getActiveHandlers()
+
+  const getEffectiveUser = (
+    handler
+  ) =>
+    delegates[
+      handler.id
+    ] ||
+    handler.user
+
+  const deriveWorkflowStatus = (
+    states =
+      handlerStates
+  ) => {
+    const completed = (
+      handler
+    ) =>
+      states[
+        handler.id
+      ]?.status ===
+      "completed"
+
+    const stepIndex =
+      workflow.findIndex(
+        (step) =>
+          !step.handlers.every(
+            (handler) =>
+              completed(
+                handler
+              )
+          )
+      )
+
+    if (stepIndex < 0) {
+      return "Hoàn thành"
+    }
+
+    const step =
+      workflow[stepIndex]
+
+    const pending =
+      step.handlers.filter(
+        (handler) =>
+          !completed(handler)
+      )
+
+    const active =
+      step.flowType ===
+      "Song song"
+        ? pending
+        : pending.slice(0, 1)
+
+    const types = [
+      ...new Set(
+        active.map(
+          (handler) =>
+            handler.actionType
+        )
+      ),
+    ]
+
+    if (types.length !== 1) {
+      return "Đang xử lý"
+    }
+
+    if (
+      types[0] ===
+      "Kiểm soát"
+    ) {
+      return "Đang kiểm soát"
+    }
+
+    if (
+      types[0] ===
+      "Tham mưu"
+    ) {
+      return "Đang tham mưu"
+    }
+
+    if (
+      types[0] ===
+      "Ký duyệt"
+    ) {
+      return "Đang phê duyệt"
+    }
+
+    return "Đang xử lý"
+  }
+
+  const normalizedSourceStatus =
+    normalizeTerminalStatus(
+      sourceStatus
+    )
+
+  const [
+    status,
+    setStatus,
+  ] = useState(
+    [
+      "Hoàn thành",
+      "Bị từ chối",
+      "Đã thu hồi",
+    ].includes(
+      normalizedSourceStatus
+    )
+      ? normalizedSourceStatus
+      : deriveWorkflowStatus()
+  )
+
+  const isTerminal =
+    [
+      "Hoàn thành",
+      "Bị từ chối",
+      "Đã thu hồi",
+    ].includes(status)
 
   // =========================
   // STORAGE
@@ -394,13 +660,41 @@ function ApprovalDetailPage() {
       )
     )
 
-    setStatus(
-      newStatus
+    setStatus(newStatus)
+  }
+
+  const saveWorkflowState = (
+    nextStates
+  ) => {
+    const current =
+      JSON.parse(
+        localStorage.getItem(
+          "hlcApprovalWorkflowStates"
+        )
+      ) || {}
+
+    current[id] = {
+      handlerStates:
+        nextStates,
+
+      updatedAt:
+        new Date().toLocaleString(
+          "vi-VN"
+        ),
+    }
+
+    localStorage.setItem(
+      "hlcApprovalWorkflowStates",
+      JSON.stringify(current)
+    )
+
+    setHandlerStates(
+      nextStates
     )
   }
 
   const saveComments = (
-    newComments
+    nextComments
   ) => {
     const current =
       JSON.parse(
@@ -410,52 +704,29 @@ function ApprovalDetailPage() {
       ) || {}
 
     current[id] =
-      newComments
+      nextComments
 
     localStorage.setItem(
       "hlcApprovalComments",
-      JSON.stringify(
-        current
-      )
+      JSON.stringify(current)
     )
 
     setComments(
-      newComments
+      nextComments
     )
   }
 
-  // =========================
-  // ACTIONS
-  // =========================
-
-  const handleChangePrototypeUser = (
-    event
+  const appendComment = (
+    content
   ) => {
-    const user =
-      event.target.value
-
-    setCurrentUser(
-      user
-    )
-
-    localStorage.setItem(
-      "hlcPrototypeUser",
-      user
-    )
-  }
-
-  const handleApprove = () => {
-    saveStatus(
-      "Chờ ký"
-    )
-
     saveComments([
       ...comments,
       {
         author:
           currentUser,
-        content:
-          "Đã phê duyệt hồ sơ.",
+
+        content,
+
         date:
           new Date().toLocaleString(
             "vi-VN"
@@ -464,15 +735,198 @@ function ApprovalDetailPage() {
     ])
   }
 
+  // =========================
+  // USER
+  // =========================
+
+  const handleChangePrototypeUser = (
+    event
+  ) => {
+    const user =
+      event.target.value
+
+    setCurrentUser(user)
+
+    localStorage.setItem(
+      "hlcPrototypeUser",
+      user
+    )
+
+    setShowOpinionForm(
+      false
+    )
+    setShowRejectForm(
+      false
+    )
+    setShowDelegateForm(
+      false
+    )
+  }
+
+  // =========================
+  // PROCESS
+  // =========================
+
+  const openOpinionForm = (
+    handler
+  ) => {
+    setSelectedHandler(
+      handler
+    )
+
+    setOpinionText("")
+    setShowOpinionForm(
+      true
+    )
+  }
+
+  const handleCompleteAction =
+    () => {
+      if (
+        !selectedHandler
+      ) {
+        return
+      }
+
+      const isActive =
+        activeHandlers.some(
+          (handler) =>
+            handler.id ===
+            selectedHandler.id
+        )
+
+      if (!isActive) {
+        window.alert(
+          "Người xử lý này chưa đến lượt."
+        )
+        return
+      }
+
+      if (
+        getEffectiveUser(
+          selectedHandler
+        ) !== currentUser
+      ) {
+        window.alert(
+          "Bạn không phải người đang được phân công xử lý bước này."
+        )
+        return
+      }
+
+      const nextStates = {
+        ...handlerStates,
+
+        [selectedHandler.id]: {
+          status:
+            "completed",
+
+          actionBy:
+            currentUser,
+
+          actionAt:
+            new Date().toLocaleString(
+              "vi-VN"
+            ),
+
+          opinion:
+            opinionText.trim(),
+        },
+      }
+
+      saveWorkflowState(
+        nextStates
+      )
+
+      const nextStatus =
+        deriveWorkflowStatus(
+          nextStates
+        )
+
+      saveStatus(
+        nextStatus
+      )
+
+      const actionLabel =
+        selectedHandler.actionType ===
+        "Kiểm soát"
+          ? "Đã phê duyệt kiểm soát"
+          : "Đã gửi ý kiến tham mưu"
+
+      appendComment(
+        opinionText.trim()
+          ? `${actionLabel}: ${opinionText.trim()}`
+          : `${actionLabel}.`
+      )
+
+      setOpinionText("")
+      setSelectedHandler(null)
+      setShowOpinionForm(
+        false
+      )
+    }
+
+  const openRejectForm = (
+    handler
+  ) => {
+    setSelectedHandler(
+      handler
+    )
+    setRejectReason("")
+    setShowRejectForm(
+      true
+    )
+  }
+
   const handleReject = () => {
     if (
+      !selectedHandler ||
       !rejectReason.trim()
     ) {
       return
     }
 
+    const isActive =
+      activeHandlers.some(
+        (handler) =>
+          handler.id ===
+          selectedHandler.id
+      )
+
+    if (
+      !isActive ||
+      getEffectiveUser(
+        selectedHandler
+      ) !== currentUser
+    ) {
+      return
+    }
+
+    const nextStates = {
+      ...handlerStates,
+
+      [selectedHandler.id]: {
+        status:
+          "rejected",
+
+        actionBy:
+          currentUser,
+
+        actionAt:
+          new Date().toLocaleString(
+            "vi-VN"
+          ),
+
+        opinion:
+          rejectReason.trim(),
+      },
+    }
+
+    saveWorkflowState(
+      nextStates
+    )
+
     saveStatus(
-      "Từ chối"
+      "Bị từ chối"
     )
 
     const currentReasons =
@@ -492,58 +946,55 @@ function ApprovalDetailPage() {
       )
     )
 
-    saveComments([
-      ...comments,
-      {
-        author:
-          currentUser,
-        content:
-          `Từ chối: ${rejectReason.trim()}`,
-        date:
-          new Date().toLocaleString(
-            "vi-VN"
-          ),
-      },
-    ])
+    appendComment(
+      `Từ chối trình ký: ${rejectReason.trim()}`
+    )
 
     setRejectReason("")
+    setSelectedHandler(null)
     setShowRejectForm(
       false
     )
   }
 
-  const handleAddComment = () => {
-    if (
-      !commentText.trim()
-    ) {
-      return
-    }
+  // =========================
+  // DELEGATE
+  // =========================
 
-    saveComments([
-      ...comments,
-      {
-        author:
-          currentUser,
-        content:
-          commentText.trim(),
-        date:
-          new Date().toLocaleString(
-            "vi-VN"
-          ),
-      },
-    ])
-
-    setCommentText("")
-    setShowCommentForm(
-      false
+  const openDelegateForm = (
+    handler
+  ) => {
+    setSelectedHandler(
+      handler
+    )
+    setSelectedDelegate("")
+    setShowDelegateForm(
+      true
     )
   }
 
   const handleDelegate = () => {
     if (
+      !selectedHandler ||
       !selectedDelegate
     ) {
       return
+    }
+
+    if (
+      selectedHandler.actionType !==
+        "Ký duyệt" ||
+      selectedHandler.user !==
+        currentUser
+    ) {
+      return
+    }
+
+    const nextDelegates = {
+      ...delegates,
+
+      [selectedHandler.id]:
+        selectedDelegate,
     }
 
     const current =
@@ -554,7 +1005,7 @@ function ApprovalDetailPage() {
       ) || {}
 
     current[id] =
-      selectedDelegate
+      nextDelegates
 
     localStorage.setItem(
       "hlcApprovalDelegates",
@@ -563,32 +1014,39 @@ function ApprovalDetailPage() {
       )
     )
 
-    setDelegate(
-      selectedDelegate
+    setDelegates(
+      nextDelegates
     )
 
-    saveComments([
-      ...comments,
-      {
-        author:
-          currentUser,
-        content:
-          `Đã ủy quyền ký cho ${selectedDelegate}.`,
-        date:
-          new Date().toLocaleString(
-            "vi-VN"
-          ),
-      },
-    ])
-
-    setSelectedDelegate(
-      ""
+    appendComment(
+      `Đã ủy quyền bước ký cho ${selectedDelegate}.`
     )
 
+    setSelectedHandler(null)
+    setSelectedDelegate("")
     setShowDelegateForm(
       false
     )
   }
+
+  // =========================
+  // WITHDRAW
+  // =========================
+
+  const completedCount =
+    Object.values(
+      handlerStates
+    ).filter(
+      (state) =>
+        state.status ===
+        "completed"
+    ).length
+
+  const canWithdraw =
+    currentUser ===
+      approval.creator &&
+    completedCount === 0 &&
+    !isTerminal
 
   const handleWithdraw = () => {
     const confirmed =
@@ -604,25 +1062,17 @@ function ApprovalDetailPage() {
       "Đã thu hồi"
     )
 
-    saveComments([
-      ...comments,
-      {
-        author:
-          currentUser,
-        content:
-          "Đã thu hồi hồ sơ trình ký.",
-        date:
-          new Date().toLocaleString(
-            "vi-VN"
-          ),
-      },
-    ])
+    appendComment(
+      "Đã thu hồi hồ sơ trình ký."
+    )
   }
 
+  // =========================
+  // FILE
+  // =========================
+
   const handleDownload = () => {
-    if (
-      !approval.fileData
-    ) {
+    if (!approval.fileData) {
       window.alert(
         "File mẫu hoặc hồ sơ cũ chưa có dữ liệu tải xuống."
       )
@@ -653,68 +1103,127 @@ function ApprovalDetailPage() {
   }
 
   // =========================
-  // PERMISSION
+  // VIEW HELPERS
   // =========================
 
-  const canWithdraw =
-    currentUser ===
-      approval.creator &&
-    status !==
-      "Hoàn tất" &&
-    status !==
-      "Từ chối" &&
-    status !==
-      "Đã thu hồi"
+  const getHandlerStatusText = (
+    handler,
+    stepIndex
+  ) => {
+    const state =
+      handlerStates[
+        handler.id
+      ]
 
-  const canApprove =
-    status ===
-      "Chờ phê duyệt" &&
-    currentUser ===
-      baseApprover
-
-  const canReject =
-    canApprove
-
-  const canDelegate =
-    status ===
-      "Chờ ký" &&
-    !delegate &&
-    currentUser ===
-      baseSigner
-
-  const canSign =
-    status ===
-      "Chờ ký" &&
-    currentUser ===
-      currentSigner
-
-  const getStatusClass =
-    () => {
-      if (
-        status ===
-        "Hoàn tất"
-      ) {
-        return "status processing"
-      }
-
-      if (
-        status ===
-        "Chờ ký"
-      ) {
-        return "status waiting"
-      }
-
-      if (
-        status ===
-          "Từ chối" ||
-        status ===
-          "Đã thu hồi"
-      ) {
-        return "status rejected"
-      }
-
-      return "status pending"
+    if (
+      state?.status ===
+      "completed"
+    ) {
+      return "Đã xử lý"
     }
+
+    if (
+      state?.status ===
+      "rejected"
+    ) {
+      return "Bị từ chối"
+    }
+
+    const active =
+      activeHandlers.some(
+        (item) =>
+          item.id ===
+          handler.id
+      )
+
+    if (active) {
+      return "Đang chờ xử lý"
+    }
+
+    if (
+      stepIndex >
+      currentStepIndex
+    ) {
+      return "Chưa đến bước"
+    }
+
+    return "Chưa đến lượt"
+  }
+
+  const getStepStatus = (
+    step,
+    index
+  ) => {
+    if (
+      isStepComplete(step)
+    ) {
+      return "Hoàn thành"
+    }
+
+    if (
+      index ===
+      currentStepIndex &&
+      !isTerminal
+    ) {
+      return "Đang xử lý"
+    }
+
+    return "Chưa xử lý"
+  }
+
+  const getStatusClass = (
+    value = status
+  ) => {
+    if (
+      value ===
+        "Hoàn thành" ||
+      value ===
+        "Hoàn tất" ||
+      value ===
+        "Đã xử lý"
+    ) {
+      return "status processing"
+    }
+
+    if (
+      value ===
+        "Bị từ chối" ||
+      value ===
+        "Đã thu hồi"
+    ) {
+      return "status rejected"
+    }
+
+    if (
+      value ===
+        "Đang kiểm soát" ||
+      value ===
+        "Đang tham mưu" ||
+      value ===
+        "Đang phê duyệt" ||
+      value ===
+        "Đang xử lý" ||
+      value ===
+        "Đang chờ xử lý"
+    ) {
+      return "status waiting"
+    }
+
+    return "status pending"
+  }
+
+  const signatureList =
+    Array.isArray(
+      signaturesRaw[id]
+    )
+      ? signaturesRaw[id]
+      : signaturesRaw[id]
+        ? [
+            signaturesRaw[
+              id
+            ],
+          ]
+        : []
 
   return (
     <div>
@@ -741,22 +1250,6 @@ function ApprovalDetailPage() {
         </div>
 
         <div className="detail-action-buttons">
-          {status !==
-            "Hoàn tất" &&
-            status !==
-              "Đã thu hồi" && (
-              <button
-                className="secondary-button"
-                onClick={() =>
-                  setShowCommentForm(
-                    true
-                  )
-                }
-              >
-                Thêm ý kiến
-              </button>
-            )}
-
           {canWithdraw && (
             <button
               className="reject-button"
@@ -768,308 +1261,68 @@ function ApprovalDetailPage() {
             </button>
           )}
 
-          {canApprove && (
-            <button
-              className="accept-button"
-              onClick={
-                handleApprove
-              }
-            >
-              Phê duyệt
-            </button>
-          )}
-
-          {canReject && (
-            <button
-              className="reject-button"
-              onClick={() =>
-                setShowRejectForm(
-                  true
-                )
-              }
-            >
-              Từ chối
-            </button>
-          )}
-
-          {canDelegate && (
+          {approval.fileData && (
             <button
               className="secondary-button"
-              onClick={() =>
-                setShowDelegateForm(
-                  true
-                )
+              onClick={
+                handleDownload
               }
             >
-              Ủy quyền ký
-            </button>
-          )}
-
-          {canSign && (
-            <button
-              className="primary-button"
-              onClick={() =>
-                navigate(
-                  `/approval/${id}/sign`
-                )
-              }
-            >
-              Ký tài liệu
+              Tải tài liệu
             </button>
           )}
         </div>
       </div>
 
-      {status !==
-        "Hoàn tất" && (
-        <div className="detail-card">
-          <h2>
-            Người dùng mô phỏng
-          </h2>
+      <div className="detail-card">
+        <h2>
+          Người dùng mô phỏng
+        </h2>
 
-          <div className="form-group">
-            <label>
-              Người đang thao tác
-            </label>
+        <div className="form-group">
+          <label>
+            Người đang thao tác
+          </label>
 
-            <select
-              value={
-                currentUser
-              }
-              onChange={
-                handleChangePrototypeUser
-              }
-            >
-              {prototypeUsers.map(
-                (user) => (
-                  <option
-                    key={user}
-                    value={user}
-                  >
-                    {user}
-                  </option>
-                )
-              )}
-            </select>
-          </div>
+          <select
+            value={
+              currentUser
+            }
+            onChange={
+              handleChangePrototypeUser
+            }
+          >
+            {prototypeUsers.map(
+              (user) => (
+                <option
+                  key={user}
+                  value={user}
+                >
+                  {user}
+                </option>
+              )
+            )}
+          </select>
         </div>
-      )}
 
-      {status ===
-        "Chờ phê duyệt" &&
-        !canApprove && (
-          <div className="settings-note">
-            Hồ sơ hiện đang chờ{" "}
-            <strong>
-              {baseApprover}
-            </strong>{" "}
-            xử lý bước phê duyệt.
-          </div>
-        )}
-
-      {status ===
-        "Chờ ký" &&
-        !canSign && (
-          <div className="settings-note">
-            Hồ sơ hiện đang chờ{" "}
-            <strong>
-              {currentSigner}
-            </strong>{" "}
-            ký duyệt.
-          </div>
-        )}
-
-      {status ===
-        "Đã thu hồi" && (
-          <div className="reject-message">
-            Hồ sơ trình ký này đã được
-            người khởi tạo thu hồi.
-          </div>
-        )}
-
-      {showCommentForm && (
-        <div className="detail-card">
-          <h2>
-            Thêm ý kiến
-          </h2>
-
-          <div className="form-group">
-            <textarea
-              rows="4"
-              value={
-                commentText
-              }
-              placeholder="Nhập ý kiến..."
-              onChange={(e) =>
-                setCommentText(
-                  e.target.value
-                )
-              }
-            />
-          </div>
-
-          <div className="form-actions">
-            <button
-              className="secondary-button"
-              onClick={() =>
-                setShowCommentForm(
-                  false
-                )
-              }
-            >
-              Hủy
-            </button>
-
-            <button
-              className="primary-button"
-              onClick={
-                handleAddComment
-              }
-            >
-              Gửi ý kiến
-            </button>
-          </div>
+        <div className="settings-note">
+          Đang thao tác với tư cách{" "}
+          <strong>
+            {currentUser}
+          </strong>
+          .
         </div>
-      )}
-
-      {showRejectForm && (
-        <div className="detail-card">
-          <h2>
-            Từ chối hồ sơ
-          </h2>
-
-          <div className="form-group">
-            <label>
-              Lý do từ chối *
-            </label>
-
-            <textarea
-              rows="4"
-              value={
-                rejectReason
-              }
-              onChange={(e) =>
-                setRejectReason(
-                  e.target.value
-                )
-              }
-            />
-          </div>
-
-          <div className="form-actions">
-            <button
-              className="secondary-button"
-              onClick={() =>
-                setShowRejectForm(
-                  false
-                )
-              }
-            >
-              Hủy
-            </button>
-
-            <button
-              className="reject-button"
-              onClick={
-                handleReject
-              }
-            >
-              Xác nhận từ chối
-            </button>
-          </div>
-        </div>
-      )}
-
-      {showDelegateForm && (
-        <div className="detail-card">
-          <h2>
-            Ủy quyền ký
-          </h2>
-
-          <div className="form-group">
-            <label>
-              Người được ủy quyền
-            </label>
-
-            <select
-              value={
-                selectedDelegate
-              }
-              onChange={(e) =>
-                setSelectedDelegate(
-                  e.target.value
-                )
-              }
-            >
-              <option value="">
-                Chọn người
-              </option>
-
-              {prototypeUsers
-                .filter(
-                  (user) =>
-                    user !==
-                    currentUser
-                )
-                .map(
-                  (user) => (
-                    <option
-                      key={user}
-                      value={user}
-                    >
-                      {user}
-                    </option>
-                  )
-                )}
-            </select>
-          </div>
-
-          <div className="form-actions">
-            <button
-              className="secondary-button"
-              onClick={() =>
-                setShowDelegateForm(
-                  false
-                )
-              }
-            >
-              Hủy
-            </button>
-
-            <button
-              className="primary-button"
-              onClick={
-                handleDelegate
-              }
-            >
-              Xác nhận ủy quyền
-            </button>
-          </div>
-        </div>
-      )}
-
-      {status ===
-        "Từ chối" &&
-        rejectReasons[id] && (
-          <div className="reject-message">
-            <strong>
-              Lý do từ chối:
-            </strong>{" "}
-            {rejectReasons[id]}
-          </div>
-        )}
-
-      {/* THÔNG TIN */}
+      </div>
 
       <div className="detail-card">
         <h2>
-          Thông tin hồ sơ
+          Thông tin trình ký
         </h2>
 
         <div className="detail-grid">
           <div>
             <span className="detail-label">
-              Tên hồ sơ
+              Nội dung
             </span>
 
             <p>
@@ -1083,9 +1336,7 @@ function ApprovalDetailPage() {
             </span>
 
             <p>
-              {
-                approval.creator
-              }
+              {approval.creator}
             </p>
           </div>
 
@@ -1096,7 +1347,7 @@ function ApprovalDetailPage() {
 
             <p>
               {approval.documentType ||
-                "Chưa có thông tin"}
+                "-"}
             </p>
           </div>
 
@@ -1106,8 +1357,10 @@ function ApprovalDetailPage() {
             </span>
 
             <p>
-              {approval.priority ||
-                "Bình thường"}
+              <strong>
+                {approval.priority ||
+                  "Bình thường"}
+              </strong>
             </p>
           </div>
 
@@ -1118,9 +1371,7 @@ function ApprovalDetailPage() {
 
             <p>
               <span
-                className={
-                  getStatusClass()
-                }
+                className={getStatusClass()}
               >
                 {status}
               </span>
@@ -1133,266 +1384,666 @@ function ApprovalDetailPage() {
             </span>
 
             <p>
-              {
-                approval.updatedAt
-              }
+              {approval.updatedAt}
             </p>
           </div>
         </div>
       </div>
 
-      {/* LUỒNG */}
+      <div className="detail-card">
+        <h2>
+          Mô tả
+        </h2>
+
+        <p>
+          {approval.description ||
+            "Không có mô tả."}
+        </p>
+      </div>
+
+      {approval.fileName && (
+        <div className="detail-card">
+          <h2>
+            Tài liệu đính kèm
+          </h2>
+
+          <div className="file-row">
+            <div>
+              <strong>
+                {
+                  approval.fileName
+                }
+              </strong>
+
+              {approval.fileSize && (
+                <p>
+                  {
+                    approval.fileSize
+                  }
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={
+                handleDownload
+              }
+            >
+              Tải xuống
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* WORKFLOW */}
 
       <div className="detail-card">
         <h2>
-          Luồng trình ký
+          Quy trình phê duyệt
         </h2>
+
+        <div className="settings-note">
+          Các bước chạy từ trên xuống.
+          Trong bước{" "}
+          <strong>
+            Tuần tự
+          </strong>
+          , người xử lý làm lần lượt.
+          Trong bước{" "}
+          <strong>
+            Song song
+          </strong>
+          , các người xử lý trong bước
+          có thể thực hiện cùng lúc.
+        </div>
 
         {workflow.map(
           (
             step,
-            index
+            stepIndex
           ) => (
             <div
-              key={
-                step.id ||
-                index
-              }
+              key={step.id}
               style={{
-                border:
-                  "1px solid #dbe3ee",
-
-                borderRadius:
-                  "10px",
-
+                marginTop:
+                  "18px",
                 padding:
                   "16px",
-
-                marginTop:
-                  index === 0
-                    ? 0
-                    : "14px",
-
-                background:
-                  "#f9fbfd",
+                border:
+                  "1px solid #e5e7eb",
+                borderRadius:
+                  "10px",
               }}
             >
-              <div className="detail-grid">
-                <div>
-                  <span className="detail-label">
-                    Bước{" "}
-                    {index +
-                      1}
-                  </span>
-
-                  <p>
-                    <strong>
-                      {step.name ||
-                        `Bước ${
-                          index +
-                          1
-                        }`}
-                    </strong>
-                  </p>
-                </div>
-
-                <div>
-                  <span className="detail-label">
-                    Loại bước
-                  </span>
-
-                  <p>
-                    {step.flowType ||
-                      "Tuần tự"}
-                  </p>
-                </div>
-              </div>
-
-              <table
+              <div
                 style={{
-                  marginTop:
+                  display:
+                    "flex",
+                  justifyContent:
+                    "space-between",
+                  gap: "12px",
+                  alignItems:
+                    "center",
+                  marginBottom:
                     "12px",
                 }}
               >
-                <thead>
-                  <tr>
-                    <th>
-                      Người xử lý
-                    </th>
+                <div>
+                  <strong>
+                    Bước{" "}
+                    {stepIndex +
+                      1}
+                    :{" "}
+                    {step.name ||
+                      `Bước ${stepIndex + 1}`}
+                  </strong>
 
-                    <th>
-                      Loại xử lý
-                    </th>
+                  <div
+                    style={{
+                      marginTop:
+                        "4px",
+                      color:
+                        "#6b7280",
+                    }}
+                  >
+                    Cách xử lý:{" "}
+                    <strong>
+                      {
+                        step.flowType
+                      }
+                    </strong>
+                  </div>
+                </div>
 
-                    <th>
-                      Phương thức ký
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {(step.handlers ||
-                    []).map(
-                    (
-                      handler
-                    ) => (
-                      <tr
-                        key={
-                          handler.id ||
-                          `${handler.user}-${handler.actionType}`
-                        }
-                      >
-                        <td>
-                          {
-                            handler.user
-                          }
-                        </td>
-
-                        <td>
-                          {
-                            handler.actionType
-                          }
-                        </td>
-
-                        <td>
-                          {handler.actionType ===
-                          "Ký duyệt"
-                            ? handler.signatureMethod ||
-                              approval.signatureMethod ||
-                              "-"
-                            : "-"}
-                        </td>
-                      </tr>
+                <span
+                  className={getStatusClass(
+                    getStepStatus(
+                      step,
+                      stepIndex
                     )
                   )}
-                </tbody>
-              </table>
+                >
+                  {getStepStatus(
+                    step,
+                    stepIndex
+                  )}
+                </span>
+              </div>
+
+              <div className="document-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>
+                        Người xử lý
+                      </th>
+
+                      <th>
+                        Vai trò
+                      </th>
+
+                      <th>
+                        Phương thức ký
+                      </th>
+
+                      <th>
+                        Trạng thái
+                      </th>
+
+                      <th>
+                        Thao tác
+                      </th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {step.handlers.map(
+                      (handler) => {
+                        const active =
+                          activeHandlers.some(
+                            (
+                              item
+                            ) =>
+                              item.id ===
+                              handler.id
+                          )
+
+                        const effectiveUser =
+                          getEffectiveUser(
+                            handler
+                          )
+
+                        const canAct =
+                          active &&
+                          !isTerminal &&
+                          effectiveUser ===
+                            currentUser
+
+                        const canReject =
+                          canAct &&
+                          [
+                            "Kiểm soát",
+                            "Ký duyệt",
+                          ].includes(
+                            handler.actionType
+                          )
+
+                        const canDelegate =
+                          canAct &&
+                          handler.actionType ===
+                            "Ký duyệt" &&
+                          handler.user ===
+                            currentUser &&
+                          !delegates[
+                            handler.id
+                          ]
+
+                        return (
+                          <tr
+                            key={
+                              handler.id
+                            }
+                          >
+                            <td>
+                              <strong>
+                                {
+                                  handler.user
+                                }
+                              </strong>
+
+                              {delegates[
+                                handler.id
+                              ] && (
+                                <div
+                                  style={{
+                                    marginTop:
+                                      "4px",
+                                    color:
+                                      "#6b7280",
+                                    fontSize:
+                                      "12px",
+                                  }}
+                                >
+                                  Ủy quyền cho:{" "}
+                                  <strong>
+                                    {
+                                      delegates[
+                                        handler
+                                          .id
+                                      ]
+                                    }
+                                  </strong>
+                                </div>
+                              )}
+                            </td>
+
+                            <td>
+                              {
+                                handler.actionType
+                              }
+                            </td>
+
+                            <td>
+                              {handler.actionType ===
+                              "Ký duyệt"
+                                ? handler.signatureMethod ||
+                                  "Chưa thiết lập"
+                                : "-"}
+                            </td>
+
+                            <td>
+                              <span
+                                className={getStatusClass(
+                                  getHandlerStatusText(
+                                    handler,
+                                    stepIndex
+                                  )
+                                )}
+                              >
+                                {getHandlerStatusText(
+                                  handler,
+                                  stepIndex
+                                )}
+                              </span>
+                            </td>
+
+                            <td>
+                              <div
+                                style={{
+                                  display:
+                                    "flex",
+                                  gap:
+                                    "6px",
+                                  flexWrap:
+                                    "wrap",
+                                }}
+                              >
+                                {canAct &&
+                                  handler.actionType ===
+                                    "Kiểm soát" && (
+                                    <button
+                                      className="primary-button"
+                                      onClick={() =>
+                                        openOpinionForm(
+                                          handler
+                                        )
+                                      }
+                                    >
+                                      Phê duyệt
+                                    </button>
+                                  )}
+
+                                {canAct &&
+                                  handler.actionType ===
+                                    "Tham mưu" && (
+                                    <button
+                                      className="primary-button"
+                                      onClick={() =>
+                                        openOpinionForm(
+                                          handler
+                                        )
+                                      }
+                                    >
+                                      Gửi tham mưu
+                                    </button>
+                                  )}
+
+                                {canAct &&
+                                  handler.actionType ===
+                                    "Ký duyệt" && (
+                                    <button
+                                      className="primary-button"
+                                      onClick={() =>
+                                        navigate(
+                                          `/approval/${id}/sign`
+                                        )
+                                      }
+                                    >
+                                      Ký duyệt
+                                    </button>
+                                  )}
+
+                                {canReject && (
+                                  <button
+                                    className="reject-button"
+                                    onClick={() =>
+                                      openRejectForm(
+                                        handler
+                                      )
+                                    }
+                                  >
+                                    Từ chối
+                                  </button>
+                                )}
+
+                                {canDelegate && (
+                                  <button
+                                    className="secondary-button"
+                                    onClick={() =>
+                                      openDelegateForm(
+                                        handler
+                                      )
+                                    }
+                                  >
+                                    Ủy quyền
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        )
+                      }
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )
         )}
       </div>
 
-      {/* VỊ TRÍ KÝ */}
+      {/* OPINION */}
 
-      <div className="detail-card">
-        <h2>
-          Thiết lập ký
-        </h2>
+      {showOpinionForm &&
+        selectedHandler && (
+          <div className="detail-card">
+            <h2>
+              {selectedHandler.actionType ===
+              "Kiểm soát"
+                ? "Ý kiến kiểm soát"
+                : "Ý kiến tham mưu"}
+            </h2>
 
-        <div className="detail-grid">
-          <div>
-            <span className="detail-label">
-              Người ký duyệt chính
-            </span>
+            <div className="form-group">
+              <label>
+                Nội dung ý kiến
+              </label>
 
-            <p>
-              {baseSigner ||
-                "-"}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Phương thức ký
-            </span>
-
-            <p>
-              {approval.signatureMethod ||
-                workflowSignerHandler
-                  ?.signatureMethod ||
-                "-"}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Trang ký
-            </span>
-
-            <p>
-              {approval.signaturePosition
-                ?.page
-                ? `Trang ${approval.signaturePosition.page}`
-                : "-"}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Vị trí
-            </span>
-
-            <p>
-              {approval.signaturePosition
-                ? `X ${Math.round(
-                    approval
-                      .signaturePosition
-                      .x
-                  )}% - Y ${Math.round(
-                    approval
-                      .signaturePosition
-                      .y
-                  )}%`
-                : "-"}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="detail-card">
-        <h2>
-          Nội dung trình ký
-        </h2>
-
-        <p>
-          {approval.description ||
-            "Không có nội dung."}
-        </p>
-      </div>
-
-      <div className="detail-card">
-        <h2>
-          Tài liệu trình ký
-        </h2>
-
-        <div className="file-row">
-          <div>
-            <strong>
-              {approval.fileName ||
-                "Không có file"}
-            </strong>
-
-            {approval.fileSize && (
-              <p>
-                Dung lượng:{" "}
-                {
-                  approval.fileSize
+              <textarea
+                rows="4"
+                placeholder="Nhập ý kiến nếu có..."
+                value={
+                  opinionText
                 }
-              </p>
-            )}
+                onChange={(e) =>
+                  setOpinionText(
+                    e.target.value
+                  )
+                }
+              />
+            </div>
+
+            <div className="form-actions">
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setShowOpinionForm(
+                    false
+                  )
+                  setSelectedHandler(
+                    null
+                  )
+                  setOpinionText(
+                    ""
+                  )
+                }}
+              >
+                Hủy
+              </button>
+
+              <button
+                className="primary-button"
+                onClick={
+                  handleCompleteAction
+                }
+              >
+                {selectedHandler.actionType ===
+                "Kiểm soát"
+                  ? "Xác nhận phê duyệt"
+                  : "Gửi ý kiến"}
+              </button>
+            </div>
           </div>
+        )}
 
-          <button
-            onClick={
-              handleDownload
-            }
-          >
-            Tải xuống
-          </button>
-        </div>
-      </div>
+      {/* REJECT */}
 
-      {comments.length > 0 && (
+      {showRejectForm &&
+        selectedHandler && (
+          <div className="detail-card">
+            <h2>
+              Từ chối trình ký
+            </h2>
+
+            <div className="form-group">
+              <label>
+                Lý do từ chối *
+              </label>
+
+              <textarea
+                rows="4"
+                value={
+                  rejectReason
+                }
+                placeholder="Nhập lý do từ chối..."
+                onChange={(e) =>
+                  setRejectReason(
+                    e.target.value
+                  )
+                }
+              />
+            </div>
+
+            <div className="form-actions">
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setShowRejectForm(
+                    false
+                  )
+                  setSelectedHandler(
+                    null
+                  )
+                  setRejectReason(
+                    ""
+                  )
+                }}
+              >
+                Hủy
+              </button>
+
+              <button
+                className="reject-button"
+                onClick={
+                  handleReject
+                }
+              >
+                Xác nhận từ chối
+              </button>
+            </div>
+          </div>
+        )}
+
+      {/* DELEGATE */}
+
+      {showDelegateForm &&
+        selectedHandler && (
+          <div className="detail-card">
+            <h2>
+              Ủy quyền ký
+            </h2>
+
+            <div className="form-group">
+              <label>
+                Người được ủy quyền *
+              </label>
+
+              <select
+                value={
+                  selectedDelegate
+                }
+                onChange={(e) =>
+                  setSelectedDelegate(
+                    e.target.value
+                  )
+                }
+              >
+                <option value="">
+                  Chọn người
+                </option>
+
+                {prototypeUsers
+                  .filter(
+                    (user) =>
+                      user !==
+                      currentUser
+                  )
+                  .map(
+                    (user) => (
+                      <option
+                        key={user}
+                        value={user}
+                      >
+                        {user}
+                      </option>
+                    )
+                  )}
+              </select>
+            </div>
+
+            <div className="form-actions">
+              <button
+                className="secondary-button"
+                onClick={() => {
+                  setShowDelegateForm(
+                    false
+                  )
+                  setSelectedHandler(
+                    null
+                  )
+                  setSelectedDelegate(
+                    ""
+                  )
+                }}
+              >
+                Hủy
+              </button>
+
+              <button
+                className="primary-button"
+                onClick={
+                  handleDelegate
+                }
+              >
+                Xác nhận ủy quyền
+              </button>
+            </div>
+          </div>
+        )}
+
+      {status ===
+        "Bị từ chối" &&
+        rejectReasons[id] && (
+          <div className="reject-message">
+            <strong>
+              Lý do từ chối:
+            </strong>{" "}
+            {rejectReasons[id]}
+          </div>
+        )}
+
+      {signatureList.length >
+        0 && (
         <div className="detail-card">
           <h2>
-            Ý kiến xử lý
+            Lịch sử ký duyệt
           </h2>
 
           <table>
             <thead>
               <tr>
                 <th>
-                  Người gửi
+                  Người ký
+                </th>
+
+                <th>
+                  Phương thức
+                </th>
+
+                <th>
+                  Thời gian
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {signatureList.map(
+                (
+                  signature,
+                  index
+                ) => (
+                  <tr key={index}>
+                    <td>
+                      {
+                        signature.signer
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        signature.method
+                      }
+                    </td>
+
+                    <td>
+                      {
+                        signature.signedAt
+                      }
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="detail-card">
+        <h2>
+          Lịch sử xử lý
+        </h2>
+
+        {comments.length ===
+        0 ? (
+          <p>
+            Chưa có lịch sử xử lý.
+          </p>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>
+                  Người thực hiện
                 </th>
 
                 <th>
@@ -1434,157 +2085,7 @@ function ApprovalDetailPage() {
               )}
             </tbody>
           </table>
-        </div>
-      )}
-
-      {signature && (
-        <div className="detail-card">
-          <h2>
-            Kết quả ký
-          </h2>
-
-          <div
-            style={{
-              border:
-                "2px solid #16a34a",
-
-              borderRadius:
-                "10px",
-
-              padding:
-                "16px",
-
-              marginBottom:
-                "16px",
-
-              background:
-                "#f0fdf4",
-            }}
-          >
-            <strong
-              style={{
-                color:
-                  "#15803d",
-                fontSize:
-                  "18px",
-              }}
-            >
-              ✓ ĐÃ KÝ SỐ
-            </strong>
-
-            <p>
-              {
-                signature.signer
-              }
-            </p>
-
-            <p>
-              {
-                signature.method
-              }
-            </p>
-
-            <p>
-              {
-                signature.signedAt
-              }
-            </p>
-          </div>
-
-          <div className="detail-grid">
-            <div>
-              <span className="detail-label">
-                Người ký
-              </span>
-
-              <p>
-                {
-                  signature.signer
-                }
-              </p>
-            </div>
-
-            <div>
-              <span className="detail-label">
-                Phương thức
-              </span>
-
-              <p>
-                {
-                  signature.method
-                }
-              </p>
-            </div>
-
-            <div>
-              <span className="detail-label">
-                Trang ký
-              </span>
-
-              <p>
-                Trang{" "}
-                {
-                  signature.page
-                }
-              </p>
-            </div>
-
-            <div>
-              <span className="detail-label">
-                Vị trí
-              </span>
-
-              <p>
-                X{" "}
-                {Math.round(
-                  signature.x ??
-                    0
-                )}
-                % - Y{" "}
-                {Math.round(
-                  signature.y ??
-                    0
-                )}
-                %
-              </p>
-            </div>
-
-            <div>
-              <span className="detail-label">
-                Thời gian ký
-              </span>
-
-              <p>
-                {
-                  signature.signedAt
-                }
-              </p>
-            </div>
-
-            <div>
-              <span className="detail-label">
-                Ủy quyền
-              </span>
-
-              <p>
-                {signature.delegated
-                  ? "Có"
-                  : "Không"}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="settings-note">
-        <strong>
-          Ghi chú prototype
-        </strong>
-
-        <p>
-          Thao tác ký hiện đang mô phỏng,
-          chưa tích hợp ký số thực tế.
-        </p>
+        )}
       </div>
     </div>
   )

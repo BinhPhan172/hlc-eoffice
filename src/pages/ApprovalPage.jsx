@@ -7,27 +7,41 @@ function ApprovalPage() {
   const defaultApprovals = [
     {
       id: "TK-0001",
-      name: "Đề nghị mua sắm thiết bị",
-      creator: "Nguyễn Văn A",
-      updatedAt: "22/10/2026",
-      priority: "Bình thường",
-      status: "Chờ phê duyệt",
+      name:
+        "Đề nghị mua sắm thiết bị",
+      creator:
+        "Nguyễn Văn A",
+      updatedAt:
+        "22/10/2026",
+      status:
+        "Chờ phê duyệt",
+      priority:
+        "Bình thường",
     },
     {
       id: "TK-0002",
-      name: "Quyết định điều động nhân sự",
-      creator: "Trần Thị B",
-      updatedAt: "21/10/2026",
+      name:
+        "Quyết định điều động nhân sự",
+      creator:
+        "Trần Thị B",
+      updatedAt:
+        "21/10/2026",
+      status:
+        "Chờ ký",
       priority: "Cao",
-      status: "Chờ ký",
     },
     {
       id: "TK-0003",
-      name: "Đề xuất kế hoạch đào tạo",
-      creator: "Lê Văn C",
-      updatedAt: "20/10/2026",
-      priority: "Bình thường",
-      status: "Hoàn tất",
+      name:
+        "Đề xuất kế hoạch đào tạo",
+      creator:
+        "Lê Văn C",
+      updatedAt:
+        "20/10/2026",
+      status:
+        "Hoàn tất",
+      priority:
+        "Bình thường",
     },
   ]
 
@@ -45,10 +59,158 @@ function ApprovalPage() {
       )
     ) || {}
 
-  const getDateValue = (
-    dateString
+  const workflowStates =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcApprovalWorkflowStates"
+      )
+    ) || {}
+
+  const normalizeStatus = (
+    value
   ) => {
-    if (!dateString) {
+    if (
+      value === "Hoàn tất"
+    ) {
+      return "Hoàn thành"
+    }
+
+    if (
+      value === "Từ chối"
+    ) {
+      return "Bị từ chối"
+    }
+
+    if (
+      value ===
+      "Chờ phê duyệt"
+    ) {
+      return "Đang kiểm soát"
+    }
+
+    if (
+      value === "Chờ ký"
+    ) {
+      return "Đang phê duyệt"
+    }
+
+    return value
+  }
+
+  const deriveWorkflowStatus = (
+    approval
+  ) => {
+    const workflow =
+      approval.approvalFlow
+
+    const stored =
+      workflowStates[
+        approval.id
+      ]
+
+    if (
+      !Array.isArray(
+        workflow
+      ) ||
+      workflow.length ===
+        0 ||
+      !stored?.handlerStates
+    ) {
+      return normalizeStatus(
+        statusOverrides[
+          approval.id
+        ] ||
+          approval.status
+      )
+    }
+
+    const states =
+      stored.handlerStates
+
+    const completed = (
+      handler
+    ) =>
+      states[
+        handler.id
+      ]?.status ===
+      "completed"
+
+    const currentStep =
+      workflow.find(
+        (step) =>
+          !(
+            step.handlers ||
+            []
+          ).every(
+            (handler) =>
+              completed(
+                handler
+              )
+          )
+      )
+
+    if (!currentStep) {
+      return "Hoàn thành"
+    }
+
+    const pending =
+      (
+        currentStep.handlers ||
+        []
+      ).filter(
+        (handler) =>
+          !completed(handler)
+      )
+
+    const active =
+      currentStep.flowType ===
+      "Song song"
+        ? pending
+        : pending.slice(0, 1)
+
+    const types = [
+      ...new Set(
+        active.map(
+          (handler) =>
+            handler.actionType
+        )
+      ),
+    ]
+
+    if (
+      types.length !== 1
+    ) {
+      return "Đang xử lý"
+    }
+
+    if (
+      types[0] ===
+      "Kiểm soát"
+    ) {
+      return "Đang kiểm soát"
+    }
+
+    if (
+      types[0] ===
+      "Tham mưu"
+    ) {
+      return "Đang tham mưu"
+    }
+
+    if (
+      types[0] ===
+      "Ký duyệt"
+    ) {
+      return "Đang phê duyệt"
+    }
+
+    return "Đang xử lý"
+  }
+
+  const getDateValue = (
+    value
+  ) => {
+    if (!value) {
       return 0
     }
 
@@ -56,7 +218,7 @@ function ApprovalPage() {
       day,
       month,
       year,
-    ] = dateString
+    ] = value
       .split("/")
       .map(Number)
 
@@ -76,10 +238,10 @@ function ApprovalPage() {
   }
 
   const getIdNumber = (
-    approvalId
+    value
   ) => {
     const match =
-      approvalId?.match(
+      value?.match(
         /(\d+)$/
       )
 
@@ -100,26 +262,21 @@ function ApprovalPage() {
         "Bình thường",
 
       status:
-        statusOverrides[
-          item.id
-        ] ||
-        item.status,
+        deriveWorkflowStatus(
+          item
+        ),
     }))
     .sort((a, b) => {
-      const dateA =
+      const dateDiff =
+        getDateValue(
+          b.updatedAt
+        ) -
         getDateValue(
           a.updatedAt
         )
 
-      const dateB =
-        getDateValue(
-          b.updatedAt
-        )
-
-      if (
-        dateA !== dateB
-      ) {
-        return dateB - dateA
+      if (dateDiff !== 0) {
+        return dateDiff
       }
 
       return (
@@ -141,7 +298,7 @@ function ApprovalPage() {
   const filteredApprovals =
     approvals.filter(
       (item) => {
-        const searchText =
+        const text =
           keyword
             .trim()
             .toLowerCase()
@@ -149,17 +306,13 @@ function ApprovalPage() {
         const matchKeyword =
           item.id
             .toLowerCase()
-            .includes(
-              searchText
-            ) ||
+            .includes(text) ||
           item.name
             .toLowerCase()
-            .includes(
-              searchText
-            )
+            .includes(text)
 
         const matchStatus =
-          status === "" ||
+          !status ||
           item.status ===
             status
 
@@ -171,53 +324,55 @@ function ApprovalPage() {
     )
 
   const getStatusClass = (
-    approvalStatus
+    value
   ) => {
     if (
-      approvalStatus ===
-      "Hoàn tất"
+      value ===
+      "Hoàn thành"
     ) {
       return "status processing"
     }
 
     if (
-      approvalStatus ===
-      "Chờ ký"
-    ) {
-      return "status waiting"
-    }
-
-    if (
-      approvalStatus ===
-        "Từ chối" ||
-      approvalStatus ===
+      value ===
+        "Bị từ chối" ||
+      value ===
         "Đã thu hồi"
     ) {
       return "status rejected"
+    }
+
+    if (
+      [
+        "Đang kiểm soát",
+        "Đang tham mưu",
+        "Đang phê duyệt",
+        "Đang xử lý",
+      ].includes(value)
+    ) {
+      return "status waiting"
     }
 
     return "status pending"
   }
 
   const getPriorityStyle = (
-    itemPriority
+    value
   ) => {
-    if (
-      itemPriority === "Khẩn"
-    ) {
+    if (value === "Khẩn") {
       return {
-        background: "#fef2f2",
+        background:
+          "#fef2f2",
         color: "#b91c1c",
         border:
           "1px solid #fecaca",
       }
     }
 
-    if (
-      itemPriority === "Cao"
-    ) {
+    if (value === "Cao") {
       return {
-        background: "#fff7ed",
+        background:
+          "#fff7ed",
         color: "#c2410c",
         border:
           "1px solid #fed7aa",
@@ -225,7 +380,8 @@ function ApprovalPage() {
     }
 
     return {
-      background: "#f3f4f6",
+      background:
+        "#f3f4f6",
       color: "#4b5563",
       border:
         "1px solid #e5e7eb",
@@ -241,7 +397,7 @@ function ApprovalPage() {
           </h1>
 
           <p>
-            Theo dõi và xử lý các hồ sơ
+            Theo dõi và xử lý hồ sơ
             trình ký.
           </p>
         </div>
@@ -254,14 +410,14 @@ function ApprovalPage() {
             )
           }
         >
-          + Khởi tạo trình ký
+          + Tạo trình ký
         </button>
       </div>
 
       <div className="filter-bar">
         <input
           type="text"
-          placeholder="Tìm theo mã hoặc tên hồ sơ..."
+          placeholder="Tìm theo mã hoặc nội dung trình ký..."
           value={keyword}
           onChange={(e) =>
             setKeyword(
@@ -282,20 +438,28 @@ function ApprovalPage() {
             Tất cả trạng thái
           </option>
 
-          <option value="Chờ phê duyệt">
-            Chờ phê duyệt
+          <option value="Đang kiểm soát">
+            Đang kiểm soát
           </option>
 
-          <option value="Chờ ký">
-            Chờ ký
+          <option value="Đang tham mưu">
+            Đang tham mưu
           </option>
 
-          <option value="Hoàn tất">
-            Hoàn tất
+          <option value="Đang phê duyệt">
+            Đang phê duyệt
           </option>
 
-          <option value="Từ chối">
-            Từ chối
+          <option value="Đang xử lý">
+            Đang xử lý
+          </option>
+
+          <option value="Hoàn thành">
+            Hoàn thành
+          </option>
+
+          <option value="Bị từ chối">
+            Bị từ chối
           </option>
 
           <option value="Đã thu hồi">
@@ -309,15 +473,15 @@ function ApprovalPage() {
           <thead>
             <tr>
               <th>
-                Mã hồ sơ
+                Mã trình ký
               </th>
 
               <th>
-                Tên hồ sơ
+                Nội dung
               </th>
 
               <th>
-                Người khởi tạo
+                Người tạo
               </th>
 
               <th>
@@ -325,7 +489,7 @@ function ApprovalPage() {
               </th>
 
               <th>
-                Cập nhật
+                Ngày tạo
               </th>
 
               <th>
@@ -341,27 +505,17 @@ function ApprovalPage() {
           <tbody>
             {filteredApprovals.map(
               (item) => (
-                <tr
-                  key={
-                    item.id
-                  }
-                >
+                <tr key={item.id}>
                   <td>
-                    {
-                      item.id
-                    }
+                    {item.id}
                   </td>
 
                   <td className="document-name">
-                    {
-                      item.name
-                    }
+                    {item.name}
                   </td>
 
                   <td>
-                    {
-                      item.creator
-                    }
+                    {item.creator}
                   </td>
 
                   <td>
@@ -369,16 +523,12 @@ function ApprovalPage() {
                       style={{
                         display:
                           "inline-block",
-
                         padding:
-                          "6px 10px",
-
+                          "5px 9px",
                         borderRadius:
                           "999px",
-
                         fontSize:
-                          "13px",
-
+                          "12px",
                         fontWeight:
                           "600",
 
@@ -387,9 +537,7 @@ function ApprovalPage() {
                         ),
                       }}
                     >
-                      {
-                        item.priority
-                      }
+                      {item.priority}
                     </span>
                   </td>
 
@@ -405,9 +553,7 @@ function ApprovalPage() {
                         item.status
                       )}
                     >
-                      {
-                        item.status
-                      }
+                      {item.status}
                     </span>
                   </td>
 
@@ -434,7 +580,7 @@ function ApprovalPage() {
                   className="empty-table"
                 >
                   Không tìm thấy hồ sơ
-                  phù hợp.
+                  trình ký phù hợp.
                 </td>
               </tr>
             )}

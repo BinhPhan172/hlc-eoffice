@@ -19,8 +19,11 @@ function ApprovalSignPage() {
   const { id } = useParams()
   const navigate = useNavigate()
 
-  const canvasRefs = useRef({})
-  const pageRefs = useRef({})
+  const canvasRefs =
+    useRef({})
+
+  const pageRefs =
+    useRef({})
 
   const prototypeUsers = [
     "Nguyễn Văn A",
@@ -28,18 +31,6 @@ function ApprovalSignPage() {
     "Lê Văn C",
     "Phạm Văn D",
   ]
-
-  const savedPrototypeUser =
-    localStorage.getItem(
-      "hlcPrototypeUser"
-    ) || "Nguyễn Văn A"
-
-  const [
-    currentUser,
-    setCurrentUser,
-  ] = useState(
-    savedPrototypeUser
-  )
 
   const defaultApprovals = [
     {
@@ -52,8 +43,6 @@ function ApprovalSignPage() {
         "Trần Thị B",
       signer:
         "Lê Văn C",
-      updatedAt:
-        "22/10/2026",
       status:
         "Chờ phê duyệt",
       fileName:
@@ -61,7 +50,8 @@ function ApprovalSignPage() {
       fileData: "",
       fileType:
         "application/pdf",
-      signatureMethod: "",
+      signatureMethod:
+        "VNPT Smart CA",
       signaturePosition: null,
     },
     {
@@ -74,39 +64,14 @@ function ApprovalSignPage() {
         "Lê Văn C",
       signer:
         "Phạm Văn D",
-      updatedAt:
-        "21/10/2026",
-      status:
-        "Chờ ký",
+      status: "Chờ ký",
       fileName:
         "quyet-dinh-dieu-dong.pdf",
       fileData: "",
       fileType:
         "application/pdf",
-      signatureMethod: "",
-      signaturePosition: null,
-    },
-    {
-      id: "TK-0003",
-      name:
-        "Đề xuất kế hoạch đào tạo",
-      creator:
-        "Lê Văn C",
-      approver:
-        "Phạm Văn D",
-      signer:
-        "Phạm Văn D",
-      updatedAt:
-        "20/10/2026",
-      status:
-        "Hoàn tất",
-      fileName:
-        "ke-hoach-dao-tao.pdf",
-      fileData: "",
-      fileType:
-        "application/pdf",
       signatureMethod:
-        "SmartCA",
+        "VNPT Smart CA",
       signaturePosition: null,
     },
   ]
@@ -125,7 +90,14 @@ function ApprovalSignPage() {
       )
     ) || {}
 
-  const savedDelegates =
+  const savedWorkflowStates =
+    JSON.parse(
+      localStorage.getItem(
+        "hlcApprovalWorkflowStates"
+      )
+    ) || {}
+
+  const savedDelegatesRaw =
     JSON.parse(
       localStorage.getItem(
         "hlcApprovalDelegates"
@@ -139,44 +111,21 @@ function ApprovalSignPage() {
 
   const approval =
     allApprovals.find(
-      (item) => item.id === id
+      (item) =>
+        item.id === id
     )
 
-  const delegatedSigner =
-    savedDelegates[id] || ""
+  const savedPrototypeUser =
+    localStorage.getItem(
+      "hlcPrototypeUser"
+    ) || "Nguyễn Văn A"
 
-  const signerName =
-    delegatedSigner ||
-    approval?.signer ||
-    approval?.approver ||
-    ""
-
-  const currentStatus =
-    approval
-      ? statusOverrides[id] ||
-        approval.status
-      : ""
-
-  const signatureMethod =
-    approval?.signatureMethod || ""
-
-  const signaturePage =
-    approval?.signaturePosition
-      ?.page || null
-
-  const signatureX =
-    approval?.signaturePosition
-      ?.x ?? null
-
-  const signatureY =
-    approval?.signaturePosition
-      ?.y ?? null
-
-  const fileData =
-    approval?.fileData || ""
-
-  const fileType =
-    approval?.fileType || ""
+  const [
+    currentUser,
+    setCurrentUser,
+  ] = useState(
+    savedPrototypeUser
+  )
 
   const [
     pdfDocument,
@@ -206,6 +155,404 @@ function ApprovalSignPage() {
   const [error, setError] =
     useState("")
 
+  if (!approval) {
+    return (
+      <div>
+        <h1>
+          Không tìm thấy hồ sơ
+        </h1>
+
+        <button
+          onClick={() =>
+            navigate("/approval")
+          }
+        >
+          ← Quay lại
+        </button>
+      </div>
+    )
+  }
+
+  // =========================
+  // WORKFLOW
+  // =========================
+
+  const getWorkflow = () => {
+    if (
+      Array.isArray(
+        approval.approvalFlow
+      ) &&
+      approval.approvalFlow.length >
+        0
+    ) {
+      return approval.approvalFlow.map(
+        (step, index) => ({
+          ...step,
+
+          step:
+            step.step ||
+            index + 1,
+
+          flowType:
+            step.flowType ||
+            "Tuần tự",
+
+          handlers:
+            Array.isArray(
+              step.handlers
+            )
+              ? step.handlers
+              : [],
+        })
+      )
+    }
+
+    const legacy = []
+
+    if (approval.approver) {
+      legacy.push({
+        id:
+          "legacy-control",
+        step: 1,
+        flowType:
+          "Tuần tự",
+
+        handlers: [
+          {
+            id:
+              "legacy-control-handler",
+            user:
+              approval.approver,
+            actionType:
+              "Kiểm soát",
+            signatureMethod:
+              "",
+          },
+        ],
+      })
+    }
+
+    if (approval.signer) {
+      legacy.push({
+        id: "legacy-sign",
+        step:
+          legacy.length + 1,
+        flowType:
+          "Tuần tự",
+
+        handlers: [
+          {
+            id:
+              "legacy-sign-handler",
+            user:
+              approval.signer,
+            actionType:
+              "Ký duyệt",
+            signatureMethod:
+              approval.signatureMethod ||
+              "",
+          },
+        ],
+      })
+    }
+
+    return legacy
+  }
+
+  const workflow =
+    getWorkflow()
+
+  const flatHandlers =
+    workflow.flatMap(
+      (step) =>
+        step.handlers
+    )
+
+  const sourceStatus =
+    statusOverrides[id] ||
+    approval.status ||
+    ""
+
+  const createInitialStates =
+    () => {
+      const states = {}
+
+      flatHandlers.forEach(
+        (handler) => {
+          states[handler.id] = {
+            status: "pending",
+          }
+        }
+      )
+
+      if (
+        sourceStatus ===
+          "Hoàn tất" ||
+        sourceStatus ===
+          "Hoàn thành"
+      ) {
+        flatHandlers.forEach(
+          (handler) => {
+            states[
+              handler.id
+            ] = {
+              status:
+                "completed",
+            }
+          }
+        )
+
+        return states
+      }
+
+      if (
+        sourceStatus ===
+          "Chờ ký" ||
+        sourceStatus ===
+          "Đang phê duyệt"
+      ) {
+        const signerIndex =
+          flatHandlers.findIndex(
+            (handler) =>
+              handler.actionType ===
+              "Ký duyệt"
+          )
+
+        if (
+          signerIndex > 0
+        ) {
+          flatHandlers
+            .slice(
+              0,
+              signerIndex
+            )
+            .forEach(
+              (handler) => {
+                states[
+                  handler.id
+                ] = {
+                  status:
+                    "completed",
+                }
+              }
+            )
+        }
+      }
+
+      return states
+    }
+
+  const storedState =
+    savedWorkflowStates[id]
+      ?.handlerStates ||
+    createInitialStates()
+
+  const [
+    handlerStates,
+    setHandlerStates,
+  ] = useState(
+    storedState
+  )
+
+  const normalizeDelegates =
+    () => {
+      const raw =
+        savedDelegatesRaw[id]
+
+      if (!raw) {
+        return {}
+      }
+
+      if (
+        typeof raw ===
+        "object"
+      ) {
+        return raw
+      }
+
+      const firstSigner =
+        flatHandlers.find(
+          (handler) =>
+            handler.actionType ===
+            "Ký duyệt"
+        )
+
+      if (!firstSigner) {
+        return {}
+      }
+
+      return {
+        [firstSigner.id]:
+          raw,
+      }
+    }
+
+  const delegates =
+    normalizeDelegates()
+
+  const isCompleted = (
+    handler,
+    states = handlerStates
+  ) =>
+    states[
+      handler.id
+    ]?.status ===
+    "completed"
+
+  const getCurrentStepIndex = (
+    states = handlerStates
+  ) =>
+    workflow.findIndex(
+      (step) =>
+        !step.handlers.every(
+          (handler) =>
+            isCompleted(
+              handler,
+              states
+            )
+        )
+    )
+
+  const getActiveHandlers = (
+    states = handlerStates
+  ) => {
+    const index =
+      getCurrentStepIndex(
+        states
+      )
+
+    if (index < 0) {
+      return []
+    }
+
+    const step =
+      workflow[index]
+
+    const pending =
+      step.handlers.filter(
+        (handler) =>
+          !isCompleted(
+            handler,
+            states
+          )
+      )
+
+    if (
+      step.flowType ===
+      "Song song"
+    ) {
+      return pending
+    }
+
+    return pending.slice(0, 1)
+  }
+
+  const getEffectiveUser = (
+    handler
+  ) =>
+    delegates[
+      handler.id
+    ] ||
+    handler.user
+
+  const activeHandlers =
+    getActiveHandlers()
+
+  const activeSigningHandler =
+    activeHandlers.find(
+      (handler) =>
+        handler.actionType ===
+          "Ký duyệt" &&
+        getEffectiveUser(
+          handler
+        ) === currentUser
+    )
+
+  const deriveStatus = (
+    states
+  ) => {
+    const active =
+      getActiveHandlers(
+        states
+      )
+
+    if (
+      active.length === 0
+    ) {
+      return "Hoàn thành"
+    }
+
+    const types = [
+      ...new Set(
+        active.map(
+          (handler) =>
+            handler.actionType
+        )
+      ),
+    ]
+
+    if (
+      types.length !== 1
+    ) {
+      return "Đang xử lý"
+    }
+
+    if (
+      types[0] ===
+      "Kiểm soát"
+    ) {
+      return "Đang kiểm soát"
+    }
+
+    if (
+      types[0] ===
+      "Tham mưu"
+    ) {
+      return "Đang tham mưu"
+    }
+
+    if (
+      types[0] ===
+      "Ký duyệt"
+    ) {
+      return "Đang phê duyệt"
+    }
+
+    return "Đang xử lý"
+  }
+
+  const signatureMethod =
+    activeSigningHandler
+      ?.signatureMethod ||
+    approval.signatureMethod ||
+    ""
+
+  // Hiện prototype vẫn dùng một
+  // vùng ký chung của hồ sơ.
+  // Bước tiếp theo mới tách vùng
+  // ký riêng cho từng người ký.
+  const signaturePage =
+    approval.signaturePosition
+      ?.page || null
+
+  const signatureX =
+    approval.signaturePosition
+      ?.x ?? null
+
+  const signatureY =
+    approval.signaturePosition
+      ?.y ?? null
+
+  const fileData =
+    approval.fileData || ""
+
+  const fileType =
+    approval.fileType || ""
+
+  // =========================
+  // PDF
+  // =========================
+
   const dataUrlToUint8Array = (
     dataUrl
   ) => {
@@ -222,11 +569,14 @@ function ApprovalSignPage() {
 
     for (
       let i = 0;
-      i < binaryString.length;
+      i <
+      binaryString.length;
       i += 1
     ) {
       bytes[i] =
-        binaryString.charCodeAt(i)
+        binaryString.charCodeAt(
+          i
+        )
     }
 
     return bytes
@@ -326,7 +676,8 @@ function ApprovalSignPage() {
       async () => {
         for (
           let pageNumber = 1;
-          pageNumber <= numPages;
+          pageNumber <=
+          numPages;
           pageNumber += 1
         ) {
           if (cancelled) {
@@ -347,10 +698,6 @@ function ApprovalSignPage() {
               await pdfDocument.getPage(
                 pageNumber
               )
-
-            if (cancelled) {
-              return
-            }
 
             const baseViewport =
               page.getViewport({
@@ -419,7 +766,6 @@ function ApprovalSignPage() {
           } catch (err) {
             if (!cancelled) {
               console.error(
-                `Không thể render trang ${pageNumber}`,
                 err
               )
             }
@@ -437,23 +783,9 @@ function ApprovalSignPage() {
     numPages,
   ])
 
-  if (!approval) {
-    return (
-      <div>
-        <h1>
-          Không tìm thấy hồ sơ
-        </h1>
-
-        <button
-          onClick={() =>
-            navigate("/approval")
-          }
-        >
-          ← Quay lại danh sách
-        </button>
-      </div>
-    )
-  }
+  // =========================
+  // USER
+  // =========================
 
   const handleChangePrototypeUser = (
     event
@@ -471,48 +803,23 @@ function ApprovalSignPage() {
     setError("")
   }
 
-  const handleGoToSignature =
-    () => {
-      if (!signaturePage) {
-        return
-      }
-
-      const targetPage =
-        pageRefs.current[
-          signaturePage
-        ]
-
-      if (targetPage) {
-        targetPage.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        })
-      }
-    }
+  // =========================
+  // SIGN
+  // =========================
 
   const handleSign = () => {
     if (
-      currentStatus !==
-      "Chờ ký"
+      !activeSigningHandler
     ) {
       setError(
-        "Hồ sơ hiện không ở trạng thái chờ ký."
-      )
-      return
-    }
-
-    if (
-      currentUser !== signerName
-    ) {
-      setError(
-        `Hồ sơ hiện đang chờ ${signerName} ký.`
+        "Hiện chưa có bước ký nào đang chờ người dùng này."
       )
       return
     }
 
     if (!signatureMethod) {
       setError(
-        "Hồ sơ chưa được thiết lập phương thức ký."
+        "Người ký chưa được thiết lập phương thức ký."
       )
       return
     }
@@ -526,7 +833,7 @@ function ApprovalSignPage() {
 
     const confirmed =
       window.confirm(
-        `Xác nhận ký hồ sơ bằng ${signatureMethod} tại trang ${signaturePage}?`
+        `Xác nhận ký bằng ${signatureMethod} tại trang ${signaturePage}?`
       )
 
     if (!confirmed) {
@@ -537,6 +844,58 @@ function ApprovalSignPage() {
     setError("")
 
     try {
+      const nextStates = {
+        ...handlerStates,
+
+        [activeSigningHandler.id]:
+          {
+            status:
+              "completed",
+
+            actionBy:
+              currentUser,
+
+            actionAt:
+              new Date().toLocaleString(
+                "vi-VN"
+              ),
+          },
+      }
+
+      const currentWorkflowStates =
+        JSON.parse(
+          localStorage.getItem(
+            "hlcApprovalWorkflowStates"
+          )
+        ) || {}
+
+      currentWorkflowStates[id] =
+        {
+          handlerStates:
+            nextStates,
+
+          updatedAt:
+            new Date().toLocaleString(
+              "vi-VN"
+            ),
+        }
+
+      localStorage.setItem(
+        "hlcApprovalWorkflowStates",
+        JSON.stringify(
+          currentWorkflowStates
+        )
+      )
+
+      setHandlerStates(
+        nextStates
+      )
+
+      const nextStatus =
+        deriveStatus(
+          nextStates
+        )
+
       const currentStatuses =
         JSON.parse(
           localStorage.getItem(
@@ -545,7 +904,7 @@ function ApprovalSignPage() {
         ) || {}
 
       currentStatuses[id] =
-        "Hoàn tất"
+        nextStatus
 
       localStorage.setItem(
         "hlcApprovalStatus",
@@ -554,14 +913,30 @@ function ApprovalSignPage() {
         )
       )
 
-      const signatures =
+      const allSignatures =
         JSON.parse(
           localStorage.getItem(
             "hlcApprovalSignatures"
           )
         ) || {}
 
-      signatures[id] = {
+      const existing =
+        allSignatures[id]
+
+      const signatureList =
+        Array.isArray(existing)
+          ? existing
+          : existing
+            ? [existing]
+            : []
+
+      signatureList.push({
+        handlerId:
+          activeSigningHandler.id,
+
+        originalSigner:
+          activeSigningHandler.user,
+
         signer:
           currentUser,
 
@@ -578,20 +953,22 @@ function ApprovalSignPage() {
           signatureY,
 
         delegated:
-          Boolean(
-            delegatedSigner
-          ),
+          currentUser !==
+          activeSigningHandler.user,
 
         signedAt:
           new Date().toLocaleString(
             "vi-VN"
           ),
-      }
+      })
+
+      allSignatures[id] =
+        signatureList
 
       localStorage.setItem(
         "hlcApprovalSignatures",
         JSON.stringify(
-          signatures
+          allSignatures
         )
       )
 
@@ -612,7 +989,7 @@ function ApprovalSignPage() {
             currentUser,
 
           content:
-            `Đã ký tài liệu bằng ${signatureMethod} tại trang ${signaturePage}.`,
+            `Đã ký duyệt bằng ${signatureMethod} tại trang ${signaturePage}.`,
 
           date:
             new Date().toLocaleString(
@@ -628,9 +1005,6 @@ function ApprovalSignPage() {
         )
       )
 
-      // QUAN TRỌNG:
-      // reload thẳng trang chi tiết
-      // để tránh màn trắng sau khi ký.
       window.location.assign(
         `/approval/${id}`
       )
@@ -645,16 +1019,6 @@ function ApprovalSignPage() {
     }
   }
 
-  const canSign =
-    currentStatus ===
-      "Chờ ký" &&
-    currentUser ===
-      signerName &&
-    Boolean(
-      signatureMethod
-    ) &&
-    Boolean(signaturePage)
-
   const renderSignatureBox = (
     pageNumber
   ) => {
@@ -668,7 +1032,8 @@ function ApprovalSignPage() {
     return (
       <div
         style={{
-          position: "absolute",
+          position:
+            "absolute",
 
           left: `${
             signatureX ?? 50
@@ -718,9 +1083,6 @@ function ApprovalSignPage() {
             "700",
 
           zIndex: 10,
-
-          boxShadow:
-            "0 4px 12px rgba(0,0,0,0.12)",
         }}
       >
         <span>
@@ -728,181 +1090,16 @@ function ApprovalSignPage() {
         </span>
 
         <small>
-          {signerName}
+          {activeSigningHandler
+            ? getEffectiveUser(
+                activeSigningHandler
+              )
+            : "Chưa đến lượt ký"}
         </small>
 
         <small>
           {signatureMethod}
         </small>
-      </div>
-    )
-  }
-
-  const renderPdfPreview = () => {
-    if (pdfLoading) {
-      return (
-        <div
-          style={{
-            padding: "40px",
-            textAlign: "center",
-          }}
-        >
-          Đang tải PDF...
-        </div>
-      )
-    }
-
-    if (pdfError) {
-      return (
-        <div className="form-error">
-          {pdfError}
-        </div>
-      )
-    }
-
-    if (
-      !pdfDocument ||
-      numPages === 0
-    ) {
-      return null
-    }
-
-    return (
-      <div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent:
-              "space-between",
-            alignItems:
-              "center",
-            gap: "12px",
-            padding:
-              "12px 14px",
-            border:
-              "1px solid #e5e7eb",
-            background:
-              "#ffffff",
-          }}
-        >
-          <div>
-            <strong>
-              PDF có {numPages} trang
-            </strong>
-
-            <div
-              style={{
-                fontSize:
-                  "13px",
-                color:
-                  "#6b7280",
-              }}
-            >
-              Vùng ký ở trang{" "}
-              {signaturePage}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="secondary-button"
-            onClick={
-              handleGoToSignature
-            }
-          >
-            Đi tới vùng ký
-          </button>
-        </div>
-
-        <div
-          style={{
-            height: "650px",
-            overflowY: "auto",
-            background:
-              "#d1d5db",
-            padding: "24px",
-          }}
-        >
-          {Array.from(
-            {
-              length:
-                numPages,
-            },
-            (_, index) => {
-              const pageNumber =
-                index + 1
-
-              return (
-                <div
-                  key={
-                    pageNumber
-                  }
-                  style={{
-                    marginBottom:
-                      "30px",
-                  }}
-                >
-                  <div
-                    style={{
-                      textAlign:
-                        "center",
-                      marginBottom:
-                        "8px",
-                      fontWeight:
-                        "600",
-                    }}
-                  >
-                    Trang{" "}
-                    {pageNumber} /{" "}
-                    {numPages}
-                  </div>
-
-                  <div
-                    ref={(element) => {
-                      pageRefs.current[
-                        pageNumber
-                      ] = element
-                    }}
-                    style={{
-                      position:
-                        "relative",
-                      maxWidth:
-                        "760px",
-                      margin:
-                        "0 auto",
-                      background:
-                        "#ffffff",
-                      boxShadow:
-                        "0 4px 16px rgba(0,0,0,0.18)",
-                    }}
-                  >
-                    <canvas
-                      ref={(
-                        element
-                      ) => {
-                        canvasRefs.current[
-                          pageNumber
-                        ] = element
-                      }}
-                      style={{
-                        display:
-                          "block",
-                        width:
-                          "100%",
-                        height:
-                          "auto",
-                      }}
-                    />
-
-                    {renderSignatureBox(
-                      pageNumber
-                    )}
-                  </div>
-                </div>
-              )
-            }
-          )}
-        </div>
       </div>
     )
   }
@@ -916,17 +1113,16 @@ function ApprovalSignPage() {
           )
         }
       >
-        ← Quay lại
+        ← Quay lại chi tiết
       </button>
 
       <div className="detail-header">
         <h1>
-          Ký tài liệu
+          Ký duyệt tài liệu
         </h1>
 
         <p>
-          Mã hồ sơ:{" "}
-          {approval.id}
+          {approval.name}
         </p>
       </div>
 
@@ -962,137 +1158,229 @@ function ApprovalSignPage() {
         </div>
       </div>
 
-      {delegatedSigner && (
-        <div className="success-message">
-          Hồ sơ đã được ủy quyền ký cho{" "}
+      {error && (
+        <div className="form-error">
+          {error}
+        </div>
+      )}
+
+      {!activeSigningHandler && (
+        <div className="settings-note">
+          Người dùng hiện tại không có
+          bước{" "}
           <strong>
-            {delegatedSigner}
-          </strong>
-          .
+            Ký duyệt
+          </strong>{" "}
+          đang hoạt động. Hãy quay lại
+          Chi tiết trình ký để kiểm tra
+          người đang đến lượt.
+        </div>
+      )}
+
+      {activeSigningHandler && (
+        <div className="detail-card">
+          <h2>
+            Thông tin ký
+          </h2>
+
+          <div className="detail-grid">
+            <div>
+              <span className="detail-label">
+                Người phê duyệt
+              </span>
+
+              <p>
+                <strong>
+                  {
+                    activeSigningHandler.user
+                  }
+                </strong>
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Người thực hiện ký
+              </span>
+
+              <p>
+                <strong>
+                  {getEffectiveUser(
+                    activeSigningHandler
+                  )}
+                </strong>
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Phương thức ký
+              </span>
+
+              <p>
+                {signatureMethod ||
+                  "Chưa thiết lập"}
+              </p>
+            </div>
+
+            <div>
+              <span className="detail-label">
+                Vị trí ký
+              </span>
+
+              <p>
+                {signaturePage
+                  ? `Trang ${signaturePage}`
+                  : "Chưa thiết lập"}
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
       <div className="detail-card">
         <h2>
-          Thông tin ký
+          Xem tài liệu
         </h2>
 
-        <div className="detail-grid">
-          <div>
-            <span className="detail-label">
-              Tên hồ sơ
-            </span>
+        {pdfLoading && (
+          <p>
+            Đang tải PDF...
+          </p>
+        )}
 
-            <p>
-              {approval.name}
-            </p>
+        {pdfError && (
+          <div className="form-error">
+            {pdfError}
           </div>
-
-          <div>
-            <span className="detail-label">
-              Người ký
-            </span>
-
-            <p>
-              {signerName}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Phương thức ký
-            </span>
-
-            <p>
-              {signatureMethod ||
-                "Chưa thiết lập"}
-            </p>
-          </div>
-
-          <div>
-            <span className="detail-label">
-              Trang ký
-            </span>
-
-            <p>
-              {signaturePage
-                ? `Trang ${signaturePage}`
-                : "Chưa thiết lập"}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div className="detail-card">
-        <h2>
-          Kiểm tra vị trí ký
-        </h2>
+        )}
 
         {!fileData && (
           <div className="settings-note">
-            Hồ sơ chưa có dữ liệu file để
-            xem trước.
+            Hồ sơ mẫu chưa có dữ liệu
+            file để hiển thị. Hãy tạo
+            một trình ký mới có PDF để
+            test vùng ký.
           </div>
         )}
 
         {fileData &&
-          fileType ===
-            "application/pdf" &&
-          renderPdfPreview()}
+          fileType !==
+            "application/pdf" && (
+            <div className="settings-note">
+              File hiện tại không phải
+              PDF nên prototype chưa
+              hiển thị trực tiếp.
+            </div>
+          )}
+
+        {pdfDocument &&
+          Array.from(
+            {
+              length:
+                numPages,
+            },
+            (_, index) =>
+              index + 1
+          ).map(
+            (pageNumber) => (
+              <div
+                key={
+                  pageNumber
+                }
+                ref={(element) => {
+                  pageRefs.current[
+                    pageNumber
+                  ] = element
+                }}
+                style={{
+                  position:
+                    "relative",
+
+                  maxWidth:
+                    "760px",
+
+                  margin:
+                    "0 auto 20px",
+
+                  border:
+                    "1px solid #d1d5db",
+
+                  boxShadow:
+                    "0 3px 10px rgba(0,0,0,0.08)",
+                }}
+              >
+                <canvas
+                  ref={(
+                    canvas
+                  ) => {
+                    canvasRefs.current[
+                      pageNumber
+                    ] =
+                      canvas
+                  }}
+                />
+
+                {renderSignatureBox(
+                  pageNumber
+                )}
+
+                <div
+                  style={{
+                    textAlign:
+                      "center",
+
+                    padding:
+                      "6px",
+
+                    background:
+                      "#f9fafb",
+
+                    fontSize:
+                      "12px",
+                  }}
+                >
+                  Trang{" "}
+                  {pageNumber}
+                </div>
+              </div>
+            )
+          )}
       </div>
 
-      <div className="detail-card">
-        <h2>
-          Xác nhận ký tài liệu
-        </h2>
+      <div className="form-actions">
+        <button
+          className="secondary-button"
+          onClick={() =>
+            navigate(
+              `/approval/${id}`
+            )
+          }
+        >
+          Hủy
+        </button>
 
-        {error && (
-          <div className="form-error">
-            {error}
-          </div>
-        )}
-
-        <div className="form-actions">
-          <button
-            className="secondary-button"
-            onClick={() =>
-              navigate(
-                `/approval/${id}`
-              )
-            }
-          >
-            Hủy
-          </button>
-
-          <button
-            className="primary-button"
-            onClick={
-              handleSign
-            }
-            disabled={
-              !canSign ||
-              signing
-            }
-          >
-            {signing
-              ? "Đang ký..."
-              : `Ký bằng ${
-                  signatureMethod ||
-                  "chữ ký số"
-                }`}
-          </button>
-        </div>
+        <button
+          className="primary-button"
+          disabled={
+            !activeSigningHandler ||
+            signing
+          }
+          onClick={
+            handleSign
+          }
+        >
+          {signing
+            ? "Đang ký..."
+            : "Xác nhận ký duyệt"}
+        </button>
       </div>
 
       <div className="settings-note">
-        <strong>
-          Ghi chú prototype
-        </strong>
-
-        <p>
-          Thao tác ký hiện đang mô phỏng,
-          chưa gọi API ký số thực tế.
-        </p>
+        Đây vẫn là mô phỏng ký số trên
+        frontend. Chưa có giao dịch ký
+        mật mã thật với VNPT SmartCA
+        hoặc USB Token.
       </div>
     </div>
   )

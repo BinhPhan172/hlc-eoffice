@@ -5,22 +5,10 @@ function DocumentUploadPage() {
   const navigate = useNavigate()
 
   const defaultCategories = [
-    {
-      id: "DOC-CAT-001",
-      name: "Quy chế",
-    },
-    {
-      id: "DOC-CAT-002",
-      name: "Hướng dẫn",
-    },
-    {
-      id: "DOC-CAT-003",
-      name: "Biên bản",
-    },
-    {
-      id: "DOC-CAT-004",
-      name: "Khác",
-    },
+    { id: "DOC-CAT-001", name: "Quy chế" },
+    { id: "DOC-CAT-002", name: "Hướng dẫn" },
+    { id: "DOC-CAT-003", name: "Biên bản" },
+    { id: "DOC-CAT-004", name: "Khác" },
   ]
 
   const savedCategories =
@@ -42,6 +30,11 @@ function DocumentUploadPage() {
     useState("")
 
   const [
+    documentScope,
+    setDocumentScope,
+  ] = useState("Phòng ban")
+
+  const [
     description,
     setDescription,
   ] = useState("")
@@ -52,8 +45,10 @@ function DocumentUploadPage() {
   const [error, setError] =
     useState("")
 
-  const [uploading, setUploading] =
-    useState(false)
+  const [
+    uploading,
+    setUploading,
+  ] = useState(false)
 
   const readFileAsDataUrl = (
     selectedFile
@@ -97,9 +92,8 @@ function DocumentUploadPage() {
             ? Number(match[1])
             : 0
         })
-        .filter(
-          (number) =>
-            Number.isFinite(number)
+        .filter((number) =>
+          Number.isFinite(number)
         )
 
     const highest =
@@ -113,110 +107,125 @@ function DocumentUploadPage() {
     ).padStart(4, "0")}`
   }
 
-  const handleUpload = async () => {
-    if (
-      !name.trim() ||
-      !category ||
-      !file
-    ) {
-      setError(
-        "Vui lòng nhập tên tài liệu, chọn loại tài liệu và chọn file."
-      )
-      return
-    }
-
-    if (
-      file.size >
-      2 * 1024 * 1024
-    ) {
-      setError(
-        "Prototype hiện chỉ lưu file tối đa 2 MB. Vui lòng chọn file nhỏ hơn."
-      )
-      return
-    }
-
-    setError("")
-    setUploading(true)
-
-    try {
-      const fileData =
-        await readFileAsDataUrl(
-          file
+  const handleUpload =
+    async () => {
+      if (
+        !name.trim() ||
+        !category ||
+        !documentScope ||
+        !file
+      ) {
+        setError(
+          "Vui lòng nhập tên tài liệu, chọn loại tài liệu, phạm vi tài liệu và chọn file."
         )
-
-      const savedDocuments =
-        JSON.parse(
-          localStorage.getItem(
-            "hlcDocuments"
-          )
-        ) || []
-
-      const newId =
-        generateDocumentId(
-          savedDocuments
-        )
-
-      const today =
-        new Date().toLocaleDateString(
-          "vi-VN"
-        )
-
-      const newDocument = {
-        id: newId,
-
-        name:
-          name.trim(),
-
-        category,
-
-        description:
-          description.trim(),
-
-        version:
-          "v1.0",
-
-        date:
-          today,
-
-        status:
-          "Chờ tiếp nhận",
-
-        uploader:
-          "Nguyễn Văn A",
-
-        fileName:
-          file.name,
-
-        fileSize: `${(
-          file.size /
-          1024 /
-          1024
-        ).toFixed(2)} MB`,
-
-        fileData,
-
-        note: "",
+        return
       }
 
-      localStorage.setItem(
-        "hlcDocuments",
-        JSON.stringify([
-          ...savedDocuments,
-          newDocument,
-        ])
-      )
+      if (
+        file.size >
+        2 * 1024 * 1024
+      ) {
+        setError(
+          "Prototype hiện chỉ lưu file tối đa 2 MB. Vui lòng chọn file nhỏ hơn."
+        )
+        return
+      }
 
-      navigate(
-        "/documents"
-      )
-    } catch (err) {
-      setError(
-        "Không thể lưu file. Vui lòng thử lại với file nhỏ hơn."
-      )
-    } finally {
-      setUploading(false)
+      setError("")
+      setUploading(true)
+
+      try {
+        const fileData =
+          await readFileAsDataUrl(
+            file
+          )
+
+        const savedDocuments =
+          JSON.parse(
+            localStorage.getItem(
+              "hlcDocuments"
+            )
+          ) || []
+
+        const newId =
+          generateDocumentId(
+            savedDocuments
+          )
+
+        const today =
+          new Date().toLocaleDateString(
+            "vi-VN"
+          )
+
+        const initialStatus =
+          documentScope ===
+          "Dùng chung"
+            ? "Chờ tiếp nhận"
+            : "Đã tiếp nhận"
+
+        const newDocument = {
+          id: newId,
+
+          name:
+            name.trim(),
+
+          category,
+
+          documentScope,
+
+          description:
+            description.trim(),
+
+          version:
+            "v1.0",
+
+          date:
+            today,
+
+          updatedAt:
+            today,
+
+          status:
+            initialStatus,
+
+          uploader:
+            "Nguyễn Văn A",
+
+          fileName:
+            file.name,
+
+          fileSize: `${(
+            file.size /
+            1024 /
+            1024
+          ).toFixed(2)} MB`,
+
+          fileData,
+
+          note: "",
+        }
+
+        localStorage.setItem(
+          "hlcDocuments",
+          JSON.stringify([
+            ...savedDocuments,
+            newDocument,
+          ])
+        )
+
+        navigate(
+          `/documents/${newId}`
+        )
+      } catch (err) {
+        console.error(err)
+
+        setError(
+          "Không thể lưu file. Vui lòng thử lại với file nhỏ hơn."
+        )
+      } finally {
+        setUploading(false)
+      }
     }
-  }
 
   return (
     <div>
@@ -236,8 +245,8 @@ function DocumentUploadPage() {
         </h1>
 
         <p>
-          Thêm tài liệu mới vào
-          HLC E-Office.
+          Thêm tài liệu mới vào HLC
+          E-Office.
         </p>
       </div>
 
@@ -266,44 +275,96 @@ function DocumentUploadPage() {
             />
           </div>
 
-          <div className="form-group">
-            <label>
-              Loại tài liệu *
-            </label>
+          <div className="detail-grid">
+            <div className="form-group">
+              <label>
+                Loại tài liệu *
+              </label>
 
-            <select
-              value={category}
-              onChange={(e) =>
-                setCategory(
-                  e.target.value
-                )
-              }
-            >
-              <option value="">
-                Chọn loại tài liệu
-              </option>
+              <select
+                value={category}
+                onChange={(e) =>
+                  setCategory(
+                    e.target.value
+                  )
+                }
+              >
+                <option value="">
+                  Chọn loại tài liệu
+                </option>
 
-              {categories.map(
-                (item) => (
-                  <option
-                    key={item.id}
-                    value={item.name}
-                  >
-                    {item.name}
-                  </option>
-                )
+                {categories.map(
+                  (item) => (
+                    <option
+                      key={item.id}
+                      value={item.name}
+                    >
+                      {item.name}
+                    </option>
+                  )
+                )}
+              </select>
+
+              {categories.length ===
+                0 && (
+                <small>
+                  Chưa có danh mục tài
+                  liệu. Vui lòng cấu
+                  hình trong Thiết lập
+                  hệ thống.
+                </small>
               )}
-            </select>
+            </div>
 
-            {categories.length ===
-              0 && (
-              <small>
-                Chưa có danh mục tài liệu.
-                Vui lòng cấu hình trong
-                Thiết lập hệ thống.
-              </small>
-            )}
+            <div className="form-group">
+              <label>
+                Phạm vi tài liệu *
+              </label>
+
+              <select
+                value={
+                  documentScope
+                }
+                onChange={(e) =>
+                  setDocumentScope(
+                    e.target.value
+                  )
+                }
+              >
+                <option value="Phòng ban">
+                  Tài liệu phòng ban
+                </option>
+
+                <option value="Dùng chung">
+                  Tài liệu dùng chung
+                </option>
+              </select>
+            </div>
           </div>
+
+          {documentScope ===
+          "Phòng ban" ? (
+            <div className="settings-note">
+              <strong>
+                Tài liệu phòng ban:
+              </strong>{" "}
+              do phòng ban tự quản và
+              không cần Văn thư tiếp
+              nhận trong prototype.
+            </div>
+          ) : (
+            <div className="settings-note">
+              <strong>
+                Tài liệu dùng chung:
+              </strong>{" "}
+              sau khi tải lên sẽ ở
+              trạng thái{" "}
+              <strong>
+                Chờ tiếp nhận
+              </strong>{" "}
+              và cần Văn thư kiểm tra.
+            </div>
+          )}
 
           <div className="form-group">
             <label>
@@ -332,15 +393,14 @@ function DocumentUploadPage() {
               onChange={(e) =>
                 setFile(
                   e.target.files[0] ||
-                  null
+                    null
                 )
               }
             />
 
             {file && (
               <small>
-                Đã chọn:{" "}
-                {file.name} -{" "}
+                Đã chọn: {file.name} -{" "}
                 {(
                   file.size /
                   1024 /

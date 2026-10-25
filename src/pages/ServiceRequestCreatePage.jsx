@@ -31,11 +31,20 @@ function ServiceRequestCreatePage() {
       ? savedCategories
       : defaultCategories
 
+  const priorityOptions = [
+    "Bình thường",
+    "Cao",
+    "Khẩn",
+  ]
+
   const [title, setTitle] =
     useState("")
 
   const [category, setCategory] =
     useState("")
+
+  const [priority, setPriority] =
+    useState("Bình thường")
 
   const [
     description,
@@ -93,127 +102,140 @@ function ServiceRequestCreatePage() {
             ? Number(match[1])
             : 0
         })
-        .filter(
-          (number) =>
-            Number.isFinite(number)
+        .filter((number) =>
+          Number.isFinite(
+            number
+          )
         )
 
-    const highest =
-      Math.max(
-        3,
-        ...numbers
-      )
+    const highest = Math.max(
+      3,
+      ...numbers
+    )
 
     return `SR-${String(
       highest + 1
     ).padStart(4, "0")}`
   }
 
-  const handleCreate = async () => {
-    if (
-      !title.trim() ||
-      !category ||
-      !description.trim()
-    ) {
-      setError(
-        "Vui lòng nhập nội dung yêu cầu, chọn danh mục và nhập mô tả."
-      )
-      return
-    }
-
-    if (
-      file &&
-      file.size >
-        2 * 1024 * 1024
-    ) {
-      setError(
-        "Prototype hiện chỉ lưu file tối đa 2 MB."
-      )
-      return
-    }
-
-    setError("")
-    setSaving(true)
-
-    try {
-      let fileData = ""
-      let fileName = ""
-      let fileSize = ""
-
-      if (file) {
-        fileData =
-          await readFileAsDataUrl(
-            file
-          )
-
-        fileName =
-          file.name
-
-        fileSize = `${(
-          file.size /
-          1024 /
-          1024
-        ).toFixed(2)} MB`
-      }
-
-      const savedRequests =
-        JSON.parse(
-          localStorage.getItem(
-            "hlcServiceRequests"
-          )
-        ) || []
-
-      const newId =
-        generateRequestId(
-          savedRequests
+  const handleCreate =
+    async () => {
+      if (
+        !title.trim() ||
+        !category ||
+        !priority ||
+        !description.trim()
+      ) {
+        setError(
+          "Vui lòng nhập đầy đủ nội dung, danh mục, mức độ ưu tiên và mô tả yêu cầu."
         )
 
-      const newRequest = {
-        id: newId,
-
-        title:
-          title.trim(),
-
-        category,
-
-        requester:
-          "Nguyễn Văn A",
-
-        description:
-          description.trim(),
-
-        updatedAt:
-          new Date().toLocaleDateString(
-            "vi-VN"
-          ),
-
-        status:
-          "Chờ tiếp nhận",
-
-        fileName,
-        fileSize,
-        fileData,
+        return
       }
 
-      localStorage.setItem(
-        "hlcServiceRequests",
-        JSON.stringify([
-          ...savedRequests,
-          newRequest,
-        ])
-      )
+      if (
+        file &&
+        file.size >
+          2 * 1024 * 1024
+      ) {
+        setError(
+          "Prototype hiện chỉ lưu file tối đa 2 MB."
+        )
 
-      navigate(
-        `/service-requests/${newId}`
-      )
-    } catch (err) {
-      setError(
-        "Không thể lưu file. Vui lòng thử lại với file nhỏ hơn."
-      )
-    } finally {
-      setSaving(false)
+        return
+      }
+
+      setError("")
+      setSaving(true)
+
+      try {
+        let fileData = ""
+        let fileName = ""
+        let fileSize = ""
+
+        if (file) {
+          fileData =
+            await readFileAsDataUrl(
+              file
+            )
+
+          fileName =
+            file.name
+
+          fileSize = `${(
+            file.size /
+            1024 /
+            1024
+          ).toFixed(2)} MB`
+        }
+
+        const savedRequests =
+          JSON.parse(
+            localStorage.getItem(
+              "hlcServiceRequests"
+            )
+          ) || []
+
+        const newId =
+          generateRequestId(
+            savedRequests
+          )
+
+        const newRequest = {
+          id: newId,
+
+          title:
+            title.trim(),
+
+          category,
+
+          priority,
+
+          requester:
+            "Nguyễn Văn A",
+
+          description:
+            description.trim(),
+
+          updatedAt:
+            new Date().toLocaleDateString(
+              "vi-VN"
+            ),
+
+          status:
+            "Chờ tiếp nhận",
+
+          handlerName: "",
+
+          handlerDepartment:
+            "",
+
+          fileName,
+          fileSize,
+          fileData,
+        }
+
+        localStorage.setItem(
+          "hlcServiceRequests",
+          JSON.stringify([
+            ...savedRequests,
+            newRequest,
+          ])
+        )
+
+        navigate(
+          `/service-requests/${newId}`
+        )
+      } catch (err) {
+        console.error(err)
+
+        setError(
+          "Không thể lưu yêu cầu. Vui lòng thử lại."
+        )
+      } finally {
+        setSaving(false)
+      }
     }
-  }
 
   return (
     <div>
@@ -233,8 +255,8 @@ function ServiceRequestCreatePage() {
         </h1>
 
         <p>
-          Tạo yêu cầu mới trên
-          HLC E-Office.
+          Gửi yêu cầu dịch vụ nội bộ
+          trên HLC E-Office.
         </p>
       </div>
 
@@ -253,7 +275,7 @@ function ServiceRequestCreatePage() {
 
             <input
               type="text"
-              placeholder="Nhập nội dung yêu cầu"
+              placeholder="Ví dụ: Sửa bàn phím"
               value={title}
               onChange={(e) =>
                 setTitle(
@@ -263,43 +285,74 @@ function ServiceRequestCreatePage() {
             />
           </div>
 
-          <div className="form-group">
-            <label>
-              Danh mục *
-            </label>
+          <div className="detail-grid">
+            <div className="form-group">
+              <label>
+                Loại yêu cầu *
+              </label>
 
-            <select
-              value={category}
-              onChange={(e) =>
-                setCategory(
-                  e.target.value
-                )
-              }
-            >
-              <option value="">
-                Chọn danh mục
-              </option>
+              <select
+                value={category}
+                onChange={(e) =>
+                  setCategory(
+                    e.target.value
+                  )
+                }
+              >
+                <option value="">
+                  Chọn loại yêu cầu
+                </option>
 
-              {categories.map(
-                (item) => (
-                  <option
-                    key={item.id}
-                    value={item.name}
-                  >
-                    {item.name}
-                  </option>
-                )
+                {categories.map(
+                  (item) => (
+                    <option
+                      key={item.id}
+                      value={
+                        item.name
+                      }
+                    >
+                      {item.name}
+                    </option>
+                  )
+                )}
+              </select>
+
+              {categories.length ===
+                0 && (
+                <small>
+                  Chưa có danh mục yêu
+                  cầu. Vui lòng cấu hình
+                  trong Thiết lập hệ
+                  thống.
+                </small>
               )}
-            </select>
+            </div>
 
-            {categories.length ===
-              0 && (
-              <small>
-                Chưa có danh mục yêu cầu.
-                Vui lòng cấu hình trong
-                Thiết lập hệ thống.
-              </small>
-            )}
+            <div className="form-group">
+              <label>
+                Mức độ ưu tiên *
+              </label>
+
+              <select
+                value={priority}
+                onChange={(e) =>
+                  setPriority(
+                    e.target.value
+                  )
+                }
+              >
+                {priorityOptions.map(
+                  (item) => (
+                    <option
+                      key={item}
+                      value={item}
+                    >
+                      {item}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
           </div>
 
           <div className="form-group">
@@ -309,7 +362,7 @@ function ServiceRequestCreatePage() {
 
             <textarea
               rows="5"
-              placeholder="Nhập mô tả chi tiết..."
+              placeholder="Mô tả chi tiết nội dung cần hỗ trợ..."
               value={description}
               onChange={(e) =>
                 setDescription(
@@ -328,8 +381,9 @@ function ServiceRequestCreatePage() {
               type="file"
               onChange={(e) =>
                 setFile(
-                  e.target.files[0] ||
-                  null
+                  e.target
+                    .files[0] ||
+                    null
                 )
               }
             />
@@ -348,9 +402,20 @@ function ServiceRequestCreatePage() {
             )}
 
             <small>
-              Không bắt buộc. Prototype hiện hỗ trợ
-              lưu file tối đa 2 MB.
+              Không bắt buộc. Prototype
+              hiện hỗ trợ lưu file tối
+              đa 2 MB.
             </small>
+          </div>
+
+          <div className="settings-note">
+            Sau khi gửi, yêu cầu sẽ ở
+            trạng thái{" "}
+            <strong>
+              Chờ tiếp nhận
+            </strong>{" "}
+            để Điều phối viên kiểm tra
+            và phân công người xử lý.
           </div>
 
           <div className="form-actions">
@@ -372,12 +437,13 @@ function ServiceRequestCreatePage() {
               }
               disabled={
                 saving ||
-                categories.length === 0
+                categories.length ===
+                  0
               }
             >
               {saving
-                ? "Đang tạo..."
-                : "Tạo yêu cầu"}
+                ? "Đang gửi..."
+                : "Gửi yêu cầu"}
             </button>
           </div>
         </div>
