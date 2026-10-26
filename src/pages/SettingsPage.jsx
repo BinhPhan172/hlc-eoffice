@@ -25,16 +25,6 @@ function SettingsPage() {
     },
 
     {
-      id: "digital-signature",
-      title:
-        "Cấu hình danh sách chữ ký số",
-      description:
-        "Thiết lập danh sách chữ ký số phục vụ chức năng ký tài liệu.",
-      route:
-        "/settings/digital-signatures",
-    },
-
-    {
       id: "request-category",
       title:
         "Cấu hình danh mục yêu cầu",
@@ -62,16 +52,6 @@ function SettingsPage() {
         "Thiết lập mức ưu tiên và thông tin SLA cho yêu cầu dịch vụ.",
       route:
         "/settings/priority-sla",
-    },
-
-    {
-      id: "processing-rules",
-      title:
-        "Cấu hình quy tắc xử lý",
-      description:
-        "Thiết lập các quy tắc phục vụ quá trình xử lý yêu cầu.",
-      route:
-        "/settings/processing-rules",
     },
   ]
 
